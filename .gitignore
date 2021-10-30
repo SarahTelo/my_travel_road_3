@@ -29,4 +29,5 @@ env.local_prod
 /templates/
 /public/assets/images/
 /public/assets/logo/
+/migrations/
 ### MY TRAVEL ROAD ###
