@@ -13,9 +13,9 @@ class SecurityController extends AbstractController
      * 
      * @Route("/api/islogged/", name="is_logged", methods={"GET"})
      *
-     * @return JSON : données et status code
+     * @return Response
      */
-    public function isLogged(): Response 
+    public function isLogged() : Response 
     {
         return $this->json( [
             'code' => 200, 
