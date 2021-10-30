@@ -19,7 +19,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * @UniqueEntity(
  *      "email", 
  *      message="L'utilisateur existe déjà", 
- *      groups={"constraints_new", "constraints_edit_data"}
+ *      groups={"constraints_new", "constraints_edit"}
  * )
  */
 class User implements UserInterface, PasswordAuthenticatedUserInterface
@@ -28,24 +28,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
+     * @Groups({
+     *      "user_list_admin", "user_profile", "user_detail",
+     * })
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=180, unique=true)
      * @Assert\NotBlank(
-     *      groups={"constraints_new", "constraints_edit"},
+     *      groups={"constraints_new"},
      *      message = "L'email ne doit pas être vide."
      * )
      * @Assert\Email(
      *      groups={"constraints_new", "constraints_edit"},
      *      message = "Le format de l'adresse mail est incorrect."
      * )
+     * @Groups({
+     *      "user_list_admin", "user_profile",
+     * })
      */
     private $email;
 
     /**
      * @ORM\Column(type="json")
+     * @Groups({
+     *      "user_list_admin",
+     * })
      */
     private $roles = [];
 
@@ -98,6 +107,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      groups={"constraints_new", "constraints_edit"},
      *      type="string"
      * )
+     * @Groups({
+     *      "user_list_admin", "user_profile",
+     * })
      */
     private $firstname;
 
@@ -130,36 +142,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      groups={"constraints_new", "constraints_edit"},
      *      type="string"
      * )
+     * @Groups({
+     *      "user_list_admin", "user_profile",
+     * })
      */
     private $lastname;
 
     /**
      * @ORM\Column(type="string", length=255)
      * @Assert\NotBlank(
-     *      groups={"constraints_new", "constraints_edit_password"},
+     *      groups={"constraints_new"},
      *      message = "Le pseudo ne doit pas être vide."
      * )
      * @Assert\Length(
-     *      groups={"constraints_new", "constraints_edit_data"},
+     *      groups={"constraints_new", "constraints_edit"},
      *      max=100,
      *      maxMessage = "Le pseudo doit contenir au maximum {{ limit }} caractères.",
      * )
      * @Assert\Regex(
-     *      groups={"constraints_new", "constraints_edit_data"},
+     *      groups={"constraints_new", "constraints_edit"},
      *      pattern = "[[=%\$<>*+\}\{\\\/\]\[;()]]",
      *      match = false,
      *      message = "Le pseudo ne doit pas contenir les caractères spéciaux suivants: = % $ < > * + } { \ / ] [ ; ( )"
      * )
      * @Assert\Regex(
-     *      groups={"constraints_new", "constraints_edit_data"},
+     *      groups={"constraints_new", "constraints_edit"},
      *      pattern = "[[a-zA-Z]]",
      *      match = true,
      *      message = "Le pseudo doit contenir au minimum un caractère alphabétique."
      * )
      * @Assert\Type(
-     *      groups={"constraints_new", "constraints_edit_data"},
+     *      groups={"constraints_new", "constraints_edit"},
      *      type="string"
      * )
+     * @Groups({
+     *      "user_list", "user_list_admin", "user_profile", "user_detail",
+     * })
      */
     private $pseudo;
 
@@ -174,40 +192,41 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      match = true,
      *      message = "La présentation doit contenir au minimum un caractère alphabétique."
      * )
+     * @Groups({
+     *      "user_list", "user_list_admin", "user_profile", "user_detail",
+     * })
      */
     private $presentation;
 
     /**
      * @ORM\Column(type="string", length=255, nullable=true)
-     * @Assert\File(
-     *     groups={"constraints_new", "constraints_edit"},
-     *     maxSize = "1024k",
-     *     maxSizeMessage = "L'avatar ne doit pas dépasser {{ limit }} Ko.",
-     *     mimeTypes = {"image/*"},
-     *     mimeTypesMessage = "Le format de l'avatar n'est pas supporté."
-     * )
+     * @Groups({
+     *      "user_list", "user_list_admin", "user_profile", "user_detail",
+     * })
      */
     private $avatar;
 
     /**
      * @ORM\Column(type="string", length=255, nullable=true)
-     * @Assert\File(
-     *     groups={"constraints_new", "constraints_edit"},
-     *     maxSize = "1024k",
-     *     maxSizeMessage = "La couverture ne doit pas dépasser {{ limit }} Ko.",
-     *     mimeTypes = {"image/*"},
-     *     mimeTypesMessage = "Le format de la couverture n'est pas supporté."
-     * )
+     * @Groups({
+     *      "user_list_admin", "user_profile", "user_detail",
+     * })
      */
     private $cover;
 
     /**
      * @ORM\Column(type="datetime_immutable")
+     * @Groups({
+     *      "user_list_admin",
+     * })
      */
     private $created_at;
 
     /**
      * @ORM\Column(type="datetime", nullable=true)
+     * @Groups({
+     *      "user_list_admin",
+     * })
      */
     private $updated_at;
 
