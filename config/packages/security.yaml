@@ -17,12 +17,15 @@ security:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
-        #! Le rate limiter n'est pas configuré
         login:
             pattern: ^/api/login
+            login_throttling:
+                # 5 essais toutes les 15 minutes
+                max_attempts: 5
+                interval: '900 seconds'
             stateless: true
             json_login:
-                check_path: /api/login_check
+                check_path: /api/login/
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
         api:
@@ -32,9 +35,9 @@ security:
         main:
             lazy: true
             provider: app_user_provider
-            logout:
-                path: app_logout
-                target: /
+            #logout:
+            #    path: app_logout
+            #    target: /
 
             # activate different ways to authenticate
             # https://symfony.com/doc/current/security.html#the-firewall
