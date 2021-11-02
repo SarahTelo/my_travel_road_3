@@ -92,7 +92,8 @@ class FileUploader
         return $this->validator->validate($imageData, [
             new File([
                 'maxSize' => '1M',
-                'mimeTypes' => [ 'image/*' ]
+                'mimeTypes' => [ 'image/*' ],
+                'mimeTypesMessage' => 'Le format du fichier envoyé doit être de type image.'
             ])
         ]);
     }
