@@ -3,12 +3,13 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
-
 use Symfony\Component\Serializer\Annotation\Groups;
 
 //todo: mettre match à true
@@ -29,7 +30,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
      * @Groups({
-     *      "user_list_admin", "user_profile", "user_detail",
+     *      "user_list", "user_list_admin", "user_profile", "user_detail",
+     *      "travel_list_admin", "travel_list_public",
+     *      "travel_detail_public",
      * })
      */
     private $id;
@@ -177,23 +180,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * )
      * @Groups({
      *      "user_list", "user_list_admin", "user_profile", "user_detail",
+     *      "travel_list_public",
+     *      "travel_detail_public",
      * })
      */
     private $pseudo;
 
     /**
-     * @ORM\Column(type="string", length=255, nullable=true)
+     * @ORM\Column(type="string", length=10000, nullable=true)
      * @Assert\Length(
+     *      groups={"constraints_new", "constraints_edit"},
      *      max=3000,
      *      maxMessage = "La présentation doit contenir au maximum {{ limit }} caractères.",
      * )
      * @Assert\Regex(
+     *      groups={"constraints_new", "constraints_edit"},
      *      pattern = "[[a-zA-Z]]",
      *      match = true,
      *      message = "La présentation doit contenir au minimum un caractère alphabétique."
      * )
      * @Groups({
      *      "user_list", "user_list_admin", "user_profile", "user_detail",
+     *      "travel_detail_public",
      * })
      */
     private $presentation;
@@ -202,6 +210,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @ORM\Column(type="string", length=255, nullable=true)
      * @Groups({
      *      "user_list", "user_list_admin", "user_profile", "user_detail",
+     *      "travel_list_public",
+     *      "travel_detail_public",
      * })
      */
     private $avatar;
@@ -230,9 +240,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     private $updated_at;
 
+    /**
+     * @ORM\OneToMany(targetEntity=Travel::class, mappedBy="user")
+     * @Groups({
+     *      "user_detail",
+     * })
+     */
+    private $travels;
+
     public function __construct()
     {
         $this->created_at = new \DateTimeImmutable('NOW');
+        $this->travels = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -416,6 +435,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setUpdatedAt(?\DateTimeInterface $updated_at): self
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Travel[]
+     */
+    public function getTravels(): Collection
+    {
+        return $this->travels;
+    }
+
+    public function addTravel(Travel $travel): self
+    {
+        if (!$this->travel->contains($travel)) {
+            $this->travel[] = $travel;
+            $travel->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTravel(Travel $travel): self
+    {
+        if ($this->travel->removeElement($travel)) {
+            // set the owning side to null (unless already changed)
+            if ($travel->getUser() === $this) {
+                $travel->setUser(null);
+            }
+        }
 
         return $this;
     }

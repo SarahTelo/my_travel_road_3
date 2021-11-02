@@ -60,12 +60,13 @@ class UserController extends AbstractController
         $repository = $this->getDoctrine()->getRepository(User::class);
 
         if ($this->isGranted('ROLE_ADMIN')) {
-            $users = $repository->findAll();
+            //$users = $repository->findAll();
             $groups = 'user_list_admin';
         } else {
-            $users = $repository->findBy(['id' => $this->getUser()->getId()]);
+            //$users = $repository->findBy(['id' => $this->getUser()->getId()]);
             $groups = 'user_list';
         }
+        $users = $repository->findAll();
         return $this->json($users, Response::HTTP_OK, [], ['groups' => $groups]);
     }
 
@@ -78,12 +79,13 @@ class UserController extends AbstractController
      */
     public function detail(User $user): Response
     {
-        //todo : rajouter la liste des voyages
+        //$travels = $user->getTravels();
+        //return $this->json([ 'userDetail' => $user, 'travelsList' => $travels ], Response::HTTP_OK, [], ['groups' => 'user_detail']);
         return $this->json($user, Response::HTTP_OK, [], ['groups' => 'user_detail']);
     }
 
     /**
-     * *Profile de de l'utilisateur actuel avec la liste de ses voyages
+     * *Page de profil de l'utilisateur actuel
      * 
      * @Route("/users/profile/", name="_profile", methods={"GET"})
      * @param User $user
@@ -92,10 +94,9 @@ class UserController extends AbstractController
     public function profile(): Response
     {
         $user = $this->getUser();
-        //todo : rajouter la liste des voyages
         return $this->json($user, Response::HTTP_OK, [], ['groups' => 'user_profile']);
     }
-    
+
     /**
      * *Ajout d'un utilisateur
      * 
@@ -114,27 +115,30 @@ class UserController extends AbstractController
         }
 
         //données de la requête
-        $requestBag = $request->request->All();
-
+        $requestUserDataNew = $request->request->All();
+        $requestUserDataNew['cover'] = null;
         //pot de miel
-        if(isset($requestBag['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestBag['_ne_rien_ajouter_'])) {
+        if(isset($requestUserDataNew['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestUserDataNew['_ne_rien_ajouter_'])) {
             return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
         }
+
         //vérification des erreurs
-        $errors = $this->validationForm($request, $requestBag, 'constraints_new');
+        $fileCover = $request->files->get('cover');
+        $fileAvatar = $request->files->get('avatar');
+        $errors = $this->validationForm($requestUserDataNew, 'constraints_new', $fileCover, $fileAvatar);
         if (count($errors) > 0 ) {
             return $this->json($errors, Response::HTTP_BAD_REQUEST);
         }
 
         //l'utilisateur est créé ici
-        $user = $this->objectNormalizer->denormalize($requestBag, User::class);
+        $user = $this->objectNormalizer->denormalize($requestUserDataNew, User::class);
         //upload du fichier vers le dossier cible et récupération de son nom
         if (isset($fileCover)) { $user->setCover($this->fileUploader->upload($fileCover)); }
         if (isset($fileAvatar)) { $user->setAvatar($this->fileUploader->upload($fileAvatar)); }
         //encodage du mot de passe
-        $user->setPassword($this->passwordHasher->hashPassword($user, $requestBag['password']));
+        $user->setPassword($this->passwordHasher->hashPassword($user, $requestUserDataNew['password']));
         //vérification du rôle car l'utilisateur pourrait envoyer la clé "roles" dans le tableau de données reçues dans la $request
-        $this->isGranted('ROLE_SUPER_ADMIN') ? $user->setRoles($requestBag['roles']) : $user->setRoles(['ROLE_USER']);
+        $this->isGranted('ROLE_SUPER_ADMIN') ? $user->setRoles($requestUserDataNew['roles']) : $user->setRoles(['ROLE_USER']);
 
         //sauvegarde
         $em = $this->getDoctrine()->getManager();
@@ -142,7 +146,7 @@ class UserController extends AbstractController
             $em->persist($user);
             $em->flush();
         } catch (\Throwable $th) {
-            $message[] = "L'utilisateur <{$requestBag['email']}> n'a pas pu être ajouté. Veuillez contacter l'administrateur.";
+            $message[] = "L'utilisateur <{$requestUserDataNew['email']}> n'a pas pu être ajouté. Veuillez contacter l'administrateur.";
             return $this->json( $message, Response::HTTP_SERVICE_UNAVAILABLE );
         }
         
@@ -152,7 +156,7 @@ class UserController extends AbstractController
     /**
      * *Modification d'un utilisateur
      * 
-     * @Route("/users/{id}/edit/", name="_edit", methods={"POST"})
+     * @Route("/users/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
      * @param ObjectNormalizer $objectNormalizer
      * @param ValidatorInterface $validator
      * @param FileUploader $fileUploader
@@ -166,23 +170,26 @@ class UserController extends AbstractController
             return $this->json(['Nécessite \'multipart/form-data\' dans le header'], Response::HTTP_BAD_REQUEST);
         }
 
-        $requestBag = $request->request->All();
-        if(isset($requestBag['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestBag['_ne_rien_ajouter_'])) {
+        $requestUserDataEdit = $request->request->All();
+        $requestUserDataEdit['cover'] = null;
+        if(isset($requestUserDataEdit['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestUserDataEdit['_ne_rien_ajouter_'])) {
             return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
         }
         //caractéristiques de l'utilisateur connecté
         $userStatus = $this->userStatus($user);
         if(!$userStatus['hasAdminAccess']) { 
-            unset($requestBag['roles']);
+            unset($requestUserDataEdit['roles']);
             if(!$userStatus['isCurrentUser']) { 
                 return $this->json(['L\'utilisateur connecté n\'est pas le propriétaire du compte à modifier'], Response::HTTP_UNAUTHORIZED);
             }
         }
         //vérification de l'ancier mot de passe avant de supprimer l'entrée pour ne pas le modifier
-        $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestBag['password']);
-        unset($requestBag['password']);
+        $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestUserDataEdit['password']);
+        unset($requestUserDataEdit['password']);
         //vérification des erreurs
-        $errors = $this->validationForm($request, $requestBag, 'constraints_edit');
+        $fileCover = $request->files->get('cover');
+        $fileAvatar = $request->files->get('avatar');
+        $errors = $this->validationForm($requestUserDataEdit, 'constraints_edit', $fileCover, $fileAvatar);
         if (!$checkPassword) { $errors[] = 'Mot de passe incorrect'; }
         if (count($errors) > 0 ) {
             return $this->json($errors, Response::HTTP_BAD_REQUEST);
@@ -190,10 +197,8 @@ class UserController extends AbstractController
 
         //ajout des champs modifiés
         $form = $this->createForm(UserType::class, $user);
-        $form->submit($requestBag, false);
+        $form->submit($requestUserDataEdit, false);
         //gestion des images
-        $fileCover = $request->files->get('cover');
-        $fileAvatar = $request->files->get('avatar');
         if (isset($fileCover)) {
             //suppression de l'ancien fichier physique s'il existe
             if ($user->getCover() != null) { $this->fileUploader->deleteFile($user->getCover()); }
@@ -206,11 +211,27 @@ class UserController extends AbstractController
             $newFilenameAvatar = $this->fileUploader->upload($fileAvatar);
             $user->setAvatar($newFilenameAvatar);
         }
+        //priorité au retrait de l'image si l'utilisateur ajoute une image ET coche "supprimer l'image"
+        if (isset($requestUserDataEdit['deleteCover'])) {
+            //obligatoire de séparer
+            $deleteCover = intval($requestUserDataEdit['deleteCover']);
+            if($deleteCover === 1) {
+                $this->fileUploader->deleteFile($user->getCover());
+                $user->setCover(null);
+            }
+        }
+        if (isset($requestUserDataEdit['deleteAvatar'])) {
+            $deleteAvatar = intval($requestUserDataEdit['deleteAvatar']);
+            if($deleteAvatar === 1) {
+                $this->fileUploader->deleteFile($user->getAvatar());
+                $user->setAvatar(null);
+            }
+        }
 
         try {
             $this->getDoctrine()->getManager()->flush();
         } catch (\Throwable $th) {
-            $message[] = "L'utilisateur <{$requestBag['email']}> n'a pas pu être modifié. Veuillez contacter l'administrateur.";
+            $message[] = "L'utilisateur <{$requestUserDataEdit['email']}> n'a pas pu être modifié. Veuillez contacter l'administrateur.";
             return $this->json( $message, Response::HTTP_SERVICE_UNAVAILABLE );
         }
 
@@ -220,7 +241,7 @@ class UserController extends AbstractController
     /**
      * *Modification du mot de passe de l'utilisateur
      * 
-     * @Route("/users/{id}/edit/password/", name="_edit_password", methods={"POST"})
+     * @Route("/users/{id}/edit/password/", name="_edit_password", methods={"POST"}, requirements={"id"="\d+"})
      * @param ObjectNormalizer $objectNormalizer
      * @param ValidatorInterface $validator
      * @param FileUploader $fileUploader
@@ -234,8 +255,8 @@ class UserController extends AbstractController
             return $this->json(['Nécessite \'multipart/form-data\' dans le header'], Response::HTTP_BAD_REQUEST);
         }
 
-        $requestBag = $request->request->All();
-        if(isset($requestBag['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestBag['_ne_rien_ajouter_'])) {
+        $requestEditUserPassword = $request->request->All();
+        if(isset($requestEditUserPassword['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestEditUserPassword['_ne_rien_ajouter_'])) {
             return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
         }
         //caractéristiques de l'utilisateur connecté
@@ -243,21 +264,22 @@ class UserController extends AbstractController
         if(!$userStatus['isCurrentUser']) { 
             return $this->json(['L\'utilisateur connecté n\'est pas le propriétaire du compte à modifier'], Response::HTTP_UNAUTHORIZED);
         }
+
         //vérification des erreurs
-        $errors = $this->validationForm($request, $requestBag, 'constraints_edit_password');
-        $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestBag['oldPassword']);
+        $errors = $this->validationForm($requestEditUserPassword, 'constraints_edit_password', null, null);
+        $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestEditUserPassword['oldPassword']);
         if (!$checkPassword) { $errors[] = 'Ancien mot de passe incorrect'; }
         if (count($errors) > 0 ) {
             return $this->json($errors, Response::HTTP_BAD_REQUEST);
         }
 
-        $user->setPassword($this->passwordHasher->hashPassword($user, $requestBag['password']));
+        $user->setPassword($this->passwordHasher->hashPassword($user, $requestEditUserPassword['password']));
 
         try {
             $this->getDoctrine()->getManager()->flush();
         } catch (\Throwable $th) {
             return $this->json(
-                ["L'utilisateur <{$requestBag['email']}> n'a pas pu être modifié. Veuillez contacter l'administrateur."], Response::HTTP_SERVICE_UNAVAILABLE
+                ["L'utilisateur <{$requestEditUserPassword['email']}> n'a pas pu être modifié. Veuillez contacter l'administrateur."], Response::HTTP_SERVICE_UNAVAILABLE
             );
         }
         
@@ -273,10 +295,10 @@ class UserController extends AbstractController
     * @param Resquest $request
     * @return Response
     */
-    public function userDelete(Request $request, User $user): Response
+    public function delete(Request $request, User $user): Response
     {
-        $requestBag = json_decode($request->getContent(), true);
-        if(isset($requestBag['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestBag['_ne_rien_ajouter_'])) {
+        $requestUserDataDelete = json_decode($request->getContent(), true);
+        if(isset($requestUserDataDelete['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestUserDataDelete['_ne_rien_ajouter_'])) {
             return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
         }
         //caractéristiques de l'utilisateur connecté
@@ -288,7 +310,7 @@ class UserController extends AbstractController
         }
         $errors = [];
         //vérification de l'ancier mot de passe
-        $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestBag['password']);
+        $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestUserDataDelete['password']);
         if (!$checkPassword) { $errors[] = 'Mot de passe incorrect'; }
 
         $mail = $user->getEmail();
@@ -341,22 +363,27 @@ class UserController extends AbstractController
     /**
      * *Vérification des contraintes pour les champs du formulaire
      *
-     * @param Request $request
      * @param Mixed $requestBag
      * @param string $constraints
+     * @param File $fileCover = null
+     * @param File $fileAvatar = null
+     * @param ObjectNormalizer $objectNormalizer
+     * @param ValidatorInterface $validator
      * @return Array
      */
-    private function validationForm(Request $request, $requestBag, string $constraints) 
+    private function validationForm($requestBag, string $constraints, $fileCover = null, $fileAvatar = null) 
     {
         //vérifications des contraintes (assert et manuelles)
         $errors = [];
         //files
-        $fileCover = $request->files->get('cover');
-        $fileAvatar = $request->files->get('avatar');
-        $brutErrors = $this->fileUploader->imageContraints($fileCover);
-        foreach ($brutErrors as $value) { $errors[] = $value->getMessage(); }
-        $brutErrors = $this->fileUploader->imageContraints($fileAvatar);
-        foreach ($brutErrors as $value) { $errors[] = $value->getMessage(); }
+        if(isset($fileCover)) {
+            $brutErrors = $this->fileUploader->imageContraints($fileCover);
+            foreach ($brutErrors as $value) { $errors[] = $value->getMessage(); }
+        }
+        if(isset($fileAvatar)) {
+            $brutErrors = $this->fileUploader->imageContraints($fileAvatar);
+            foreach ($brutErrors as $value) { $errors[] = $value->getMessage(); }
+        }
         //data
         $user = $this->objectNormalizer->denormalize($requestBag, User::class);
         $brutErrors = $this->validator->validate($user, null, $constraints);
