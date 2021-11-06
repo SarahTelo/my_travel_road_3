@@ -18,10 +18,11 @@ class Travel
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
      * @Groups({
-     *      "travel_list_private", "travel_list_public", 
+     *      "travel_list_public", 
      *      "travel_list_admin", 
      *      "travel_detail_private", "travel_detail_public",
-     *      "user_detail",
+     *      "travel_user_detail",
+     *      "home_detail",
      * })
      */
     private $id;
@@ -44,10 +45,11 @@ class Travel
      *      message = "Le titre doit contenir au minimum un caractère alphabétique."
      * )
      * @Groups({
-     *      "travel_list_private", "travel_list_public", 
+     *      "travel_list_public", 
      *      "travel_list_admin", 
      *      "travel_detail_private", "travel_detail_public",
-     *      "user_detail",
+     *      "travel_user_detail",
+     *      "home_detail",
      * })
      */
     private $title;
@@ -55,10 +57,11 @@ class Travel
     /**
      * @ORM\Column(type="string", length=255, nullable=true)
      * @Groups({
-     *      "travel_list_private", "travel_list_public", 
+     *      "travel_list_public", 
      *      "travel_list_admin", 
      *      "travel_detail_private", "travel_detail_public",
-     *      "user_detail",
+     *      "travel_user_detail",
+     *      "home_detail",
      * })
      */
     private $cover;
@@ -77,10 +80,10 @@ class Travel
      *      message = "La description doit contenir au minimum un caractère alphabétique."
      * )
      * @Groups({
-     *      "travel_list_private", "travel_list_public", 
+     *      "travel_list_public", 
      *      "travel_list_admin", 
      *      "travel_detail_private", "travel_detail_public",
-     *      "user_detail",
+     *      "travel_user_detail",
      * })
      */
     private $description;
@@ -119,9 +122,10 @@ class Travel
      *      message = "Le status doit avoir pour valeur 0, 1 ou 2."
      * )
      * @Groups({
-     *      "travel_list_private", "travel_list_public", 
+     *      "travel_list_public", 
      *      "travel_list_admin", 
      *      "travel_detail_private", "travel_detail_public",
+     *      "home_detail",
      * })
      */
     private $status;
@@ -166,6 +170,7 @@ class Travel
      * @Groups({
      *      "travel_list_admin", "travel_list_public",
      *      "travel_detail_public",
+     *      "home_detail",
      * })
      */
     private $user;

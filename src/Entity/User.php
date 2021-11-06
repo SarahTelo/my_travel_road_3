@@ -33,6 +33,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      "user_list", "user_list_admin", "user_profile", "user_detail",
      *      "travel_list_admin", "travel_list_public",
      *      "travel_detail_public",
+     *      "home_detail",
      * })
      */
     private $id;
@@ -182,6 +183,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      "user_list", "user_list_admin", "user_profile", "user_detail",
      *      "travel_list_public",
      *      "travel_detail_public",
+     *      "home_detail",
      * })
      */
     private $pseudo;
@@ -212,6 +214,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      "user_list", "user_list_admin", "user_profile", "user_detail",
      *      "travel_list_public",
      *      "travel_detail_public",
+     *      "home_detail",
      * })
      */
     private $avatar;
@@ -243,7 +246,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @ORM\OneToMany(targetEntity=Travel::class, mappedBy="user")
      * @Groups({
-     *      "user_detail",
+     *      "user_detail_à-retirer!",
      * })
      */
     private $travels;

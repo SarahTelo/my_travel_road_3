@@ -60,16 +60,28 @@ class TravelController extends AbstractController
         $repository = $this->getDoctrine()->getRepository(Travel::class);
 
         if ($this->isGranted('ROLE_ADMIN')) {
-            $travels = $repository->findAll();
             $groups = 'travel_list_admin';
+            $travels = $repository->findAll();
         } else {
+            $groups = 'travel_list_public';
             $travels = $repository->findBy(
                 ['visibility' => 1],
                 ['created_at' => 'DESC']
             );
-            $groups = 'travel_list_public';
         }
         return $this->json($travels, Response::HTTP_OK, [], ['groups' => $groups]);
+    }
+
+    /**
+     * *Liste de tous les voyages de l'utilisateur actuel
+     * 
+     * @Route("/travels/my-travels-list/", name="_list_private", methods={"GET"})
+     * @return Response
+     */
+    public function privateList(): Response
+    {
+        $travels = $this->getDoctrine()->getRepository(Travel::class)->findBy(['user' => $this->getUser()->getId()]);
+        return $this->json($travels, Response::HTTP_OK, [], ['groups' => 'travel_detail_private']);
     }
 
     /**
@@ -88,6 +100,10 @@ class TravelController extends AbstractController
         } else {
             //avec l'utilisateur
             $groups = 'travel_detail_public';
+        }
+
+        if(!$travel->getVisibility()) {
+            return $this->json(['Voyage inaccessible.'], Response::HTTP_FORBIDDEN);
         }
         return $this->json($travel, Response::HTTP_OK, [], ['groups' => $groups]);
     }

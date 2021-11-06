@@ -19,6 +19,25 @@ class TravelRepository extends ServiceEntityRepository
         parent::__construct($registry, Travel::class);
     }
 
+    /**
+     * Tous les voyages d'un utilisateur qui sont visibles
+     *
+     * @param integer $userId
+     * @param boolean $visibility
+     * @return void
+     */
+    public function findByUserAndVisibility(int $userId, bool $visibility)
+    {
+        return $this->createQueryBuilder('travels')
+            ->andWhere('travels.visibility = :val')
+            ->setParameter('val', $visibility)
+            ->andWhere('travels.user = :val2')
+            ->setParameter('val2', $userId)
+            ->getQuery()
+            ->getResult()
+        ;
+    }
+
     // /**
     //  * @return Travel[] Returns an array of Travel objects
     //  */

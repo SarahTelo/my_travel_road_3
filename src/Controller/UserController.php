@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
+use App\Entity\Travel;
 use App\Repository\TravelRepository;
 use App\Repository\StepRepository;
 use App\Repository\ImageRepository;
@@ -71,7 +72,7 @@ class UserController extends AbstractController
     }
 
     /**
-     * *Détail de l'utilisateur avec la liste de ses voyages
+     * *Détail de l'utilisateur avec la liste de ses voyages visibles
      * 
      * @Route("/users/{id}/detail/", name="_detail", methods={"GET"}, requirements={"id"="\d+"})
      * @param User $user
@@ -79,9 +80,17 @@ class UserController extends AbstractController
      */
     public function detail(User $user): Response
     {
-        //$travels = $user->getTravels();
-        //return $this->json([ 'userDetail' => $user, 'travelsList' => $travels ], Response::HTTP_OK, [], ['groups' => 'user_detail']);
-        return $this->json($user, Response::HTTP_OK, [], ['groups' => 'user_detail']);
+        /** @var TravelRepository $repository*/
+        $repository = $this->getDoctrine()->getRepository(Travel::class);
+        $travelsByVisibility = $repository->findByUserAndVisibility($user->getId(), true);
+        //séparation du type de 'groups' nécessaire à l'affichage de l'utilisateur et de ses voyages
+        $travelsWithGroups = $this->serializer->serialize($travelsByVisibility, 'json', ['groups' => 'travel_user_detail']);
+        return $this->json([
+            'userDetail' => $user,
+            'travelsList' => json_decode($travelsWithGroups, true),
+        ],
+            Response::HTTP_OK, [], ['groups' => 'user_detail']
+        );
     }
 
     /**
