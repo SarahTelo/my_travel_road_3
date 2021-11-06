@@ -2,30 +2,30 @@
 
 namespace App\Form;
 
-use App\Entity\User;
+use App\Entity\Travel;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class UserType extends AbstractType
+class TravelType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('email')
-            ->add('roles')
-            ->add('password')
-            ->add('firstname')
-            ->add('lastname')
-            ->add('pseudo')
-            ->add('presentation')
+            ->add('title')
+            ->add('cover')
+            ->add('description')
+            ->add('start_at')
+            ->add('end_at')
+            ->add('status')
+            ->add('visibility')
         ;
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => User::class,
+            'data_class' => Travel::class,
         ]);
     }
 }
