@@ -18,6 +18,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Service\FileUploader;
 use App\Service\AntiSpamService;
 use App\Service\ProcessFormService;
+use DateTime;
 
 /**
 * @Route("/api", name="travels")
@@ -100,11 +101,11 @@ class TravelController extends AbstractController
         } else {
             //avec l'utilisateur
             $groups = 'travel_detail_public';
+            if(!$travel->getVisibility()) {
+                return $this->json(['Voyage inaccessible.'], Response::HTTP_FORBIDDEN);
+            }
         }
 
-        if(!$travel->getVisibility()) {
-            return $this->json(['Voyage inaccessible.'], Response::HTTP_FORBIDDEN);
-        }
         return $this->json($travel, Response::HTTP_OK, [], ['groups' => $groups]);
     }
 
@@ -168,7 +169,7 @@ class TravelController extends AbstractController
     /**
      * *Modification d'un voyage
      * 
-     * @Route("/travels/{id}/edit/", name="_edit", methods={"POST"})
+     * @Route("/travels/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
      * @param ObjectNormalizer $objectNormalizer
      * @param FileUploader $fileUploader
      * @param AntiSpamService $antiSpam
@@ -187,13 +188,13 @@ class TravelController extends AbstractController
         //données de la requête
         $requestTravelEdit = $request->request->All();
         //évite d'ajouter dans la db un string qui ne correspond à aucune image
-        $requestTravelEdit['cover'] = null;
+        unset($requestTravelEdit['cover']);
 
         //pot de miel
         if(isset($requestTravelEdit['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestTravelEdit['_ne_rien_ajouter_'])) {
             return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
         }
-        
+
         //caractéristiques de l'utilisateur connecté
         $userStatus = $this->userStatus($travel);
         if(!$userStatus['hasAdminAccess']) { 
@@ -215,6 +216,11 @@ class TravelController extends AbstractController
         //ajout des champs modifiés
         $form = $this->createForm(TravelType::class, $travel);
         $form->submit($requestTravelEdit, false);
+
+        //gestion des dates
+        if (isset($requestTravelEdit['start_at'])) { $travel->setStartAt(new DateTime($requestTravelEdit['start_at'])); }
+        if (isset($requestTravelEdit['end_at'])) { $travel->setEndAt(new DateTime($requestTravelEdit['end_at'])); }
+
         //gestion des images
         if (isset($fileCover)) {
             //suppression de l'ancien fichier physique s'il existe

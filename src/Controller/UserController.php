@@ -180,7 +180,8 @@ class UserController extends AbstractController
         }
 
         $requestUserDataEdit = $request->request->All();
-        $requestUserDataEdit['cover'] = null;
+        unset($requestUserDataEdit['cover']);
+        unset($requestUserDataEdit['avatar']);
         if(isset($requestUserDataEdit['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestUserDataEdit['_ne_rien_ajouter_'])) {
             return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
         }
