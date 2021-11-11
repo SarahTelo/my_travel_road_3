@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\TravelRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -23,6 +25,7 @@ class Travel
      *      "travel_detail_private", "travel_detail_public",
      *      "travel_user_detail",
      *      "home_detail",
+     *      "category_travel_detail",
      * })
      */
     private $id;
@@ -35,7 +38,7 @@ class Travel
      * )
      * @Assert\Length(
      *      groups={"constraints_new", "constraints_edit"},
-     *      max=3000,
+     *      max=255,
      *      maxMessage = "Le titre doit contenir au maximum {{ limit }} caractères.",
      * )
      * @Assert\Regex(
@@ -50,6 +53,7 @@ class Travel
      *      "travel_detail_private", "travel_detail_public",
      *      "travel_user_detail",
      *      "home_detail",
+     *      "category_travel_detail",
      * })
      */
     private $title;
@@ -62,6 +66,7 @@ class Travel
      *      "travel_detail_private", "travel_detail_public",
      *      "travel_user_detail",
      *      "home_detail",
+     *      "category_travel_detail",
      * })
      */
     private $cover;
@@ -166,20 +171,33 @@ class Travel
 
     /**
      * @ORM\ManyToOne(targetEntity=User::class, inversedBy="travel")
-     * @ORM\JoinColumn(nullable=false)
+     * @ORM\JoinColumn(nullable=false, onDelete="CASCADE")
      * @Groups({
      *      "travel_list_admin", "travel_list_public",
      *      "travel_detail_public",
      *      "home_detail",
+     *      "category_travel_detail",
      * })
      */
     private $user;
+
+    /**
+     * @ORM\ManyToMany(targetEntity=Category::class, inversedBy="travels")
+     * @Groups({
+     *      "travel_list_public", 
+     *      "travel_detail_private", "travel_detail_public",
+     *      "travel_user_detail",
+     *      "home_detail",
+     * })
+     */
+    private $categories;
 
     public function __construct()
     {
         $this->created_at = new \DateTimeImmutable('NOW');
         $this->status = 2;
         $this->visibility = 0;
+        $this->categories = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -303,6 +321,30 @@ class Travel
     public function setUser(?User $user): self
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Category[]
+     */
+    public function getCategories(): Collection
+    {
+        return $this->categories;
+    }
+
+    public function addCategory(Category $category): self
+    {
+        if (!$this->categories->contains($category)) {
+            $this->categories[] = $category;
+        }
+
+        return $this;
+    }
+
+    public function removeCategory(Category $category): self
+    {
+        $this->categories->removeElement($category);
 
         return $this;
     }
