@@ -247,12 +247,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private $updated_at;
 
     /**
+     * @ORM\ManyToOne(targetEntity=Country::class, inversedBy="users")
+     * @Groups({
+     *      "user_list_admin", "user_list",
+     *      "user_detail", "user_profile",
+     * })
+     */
+    private $country;
+
+    /**
      * @ORM\OneToMany(targetEntity=Travel::class, mappedBy="user")
      * @Groups({
      *      "user_detail_à-retirer!",
      * })
      */
     private $travels;
+
 
     public function __construct()
     {
@@ -441,6 +451,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setUpdatedAt(?\DateTimeInterface $updated_at): self
     {
         $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    public function getCountry(): ?Country
+    {
+        return $this->country;
+    }
+
+    public function setCountry(?Country $country): self
+    {
+        $this->country = $country;
 
         return $this;
     }

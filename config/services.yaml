@@ -36,3 +36,10 @@ services:
                 name: 'doctrine.event_listener'
                 #méthode dans AutoSetListener.php ciblée
                 event: 'preUpdate'
+
+    App\EventListener\RequestListener:
+        tags:
+            -
+                name: 'kernel.event_listener'
+                event: 'kernel.request'
+                method: 'onKernelRequest'

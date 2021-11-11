@@ -29,6 +29,7 @@ class TravelRepository extends ServiceEntityRepository
     public function findByUserAndVisibility(int $userId, bool $visibility)
     {
         return $this->createQueryBuilder('travels')
+            ->select('travels.id', 'travels.title', 'travels.cover')
             ->andWhere('travels.visibility = :val')
             ->setParameter('val', $visibility)
             ->andWhere('travels.user = :val2')

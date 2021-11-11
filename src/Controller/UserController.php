@@ -7,6 +7,8 @@ use App\Form\UserType;
 use App\Repository\UserRepository;
 use App\Entity\Travel;
 use App\Repository\TravelRepository;
+use App\Entity\Country;
+use App\Repository\CountryRepository;
 use App\Repository\StepRepository;
 use App\Repository\ImageRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -82,12 +84,10 @@ class UserController extends AbstractController
     {
         /** @var TravelRepository $repository*/
         $repository = $this->getDoctrine()->getRepository(Travel::class);
-        $travelsByVisibility = $repository->findByUserAndVisibility($user->getId(), true);
-        //séparation du type de 'groups' nécessaire à l'affichage de l'utilisateur et de ses voyages
-        $travelsWithGroups = $this->serializer->serialize($travelsByVisibility, 'json', ['groups' => 'travel_user_detail']);
+        $travels = $repository->findByUserAndVisibility($user->getId(), true);
         return $this->json([
             'userDetail' => $user,
-            'travelsList' => json_decode($travelsWithGroups, true),
+            'travelsList' => $travels,
         ],
             Response::HTTP_OK, [], ['groups' => 'user_detail']
         );
@@ -118,29 +118,21 @@ class UserController extends AbstractController
      */
     public function new(Request $request) : Response
     {
-        $contentType = $request->headers->get('Content-Type');
-        if (!str_contains($contentType, 'multipart/form-data')) {
-            return $this->json(['Nécessite \'multipart/form-data\' dans le header'], Response::HTTP_BAD_REQUEST);
-        }
-
         //données de la requête
         $requestUserDataNew = $request->request->All();
-        $requestUserDataNew['cover'] = null;
-        //pot de miel
-        if(isset($requestUserDataNew['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestUserDataNew['_ne_rien_ajouter_'])) {
-            return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
-        }
+        unset($requestUserDataEdit['cover']);
+        unset($requestUserDataEdit['avatar']);
 
+        //l'utilisateur est créé ici
+        $user = $this->objectNormalizer->denormalize($requestUserDataNew, User::class);
         //vérification des erreurs
         $fileCover = $request->files->get('cover');
         $fileAvatar = $request->files->get('avatar');
-        $errors = $this->validationForm($requestUserDataNew, 'constraints_new', $fileCover, $fileAvatar);
+        $errors = $this->validationForm($user, 'constraints_new', $fileCover, $fileAvatar);
         if (count($errors) > 0 ) {
             return $this->json($errors, Response::HTTP_BAD_REQUEST);
         }
 
-        //l'utilisateur est créé ici
-        $user = $this->objectNormalizer->denormalize($requestUserDataNew, User::class);
         //upload du fichier vers le dossier cible et récupération de son nom
         if (isset($fileCover)) { $user->setCover($this->fileUploader->upload($fileCover)); }
         if (isset($fileAvatar)) { $user->setAvatar($this->fileUploader->upload($fileAvatar)); }
@@ -148,6 +140,15 @@ class UserController extends AbstractController
         $user->setPassword($this->passwordHasher->hashPassword($user, $requestUserDataNew['password']));
         //vérification du rôle car l'utilisateur pourrait envoyer la clé "roles" dans le tableau de données reçues dans la $request
         $this->isGranted('ROLE_SUPER_ADMIN') ? $user->setRoles($requestUserDataNew['roles']) : $user->setRoles(['ROLE_USER']);
+        //ajout du pays
+        if (isset($requestUserDataNew['country']) && intval($requestUserDataNew['country']) != 0) { 
+            $countryId = intval($requestUserDataNew['country']);
+            /** @var CountryRepository $repository*/
+            $country = $this->getDoctrine()->getRepository(Country::class)->find($countryId);
+            $user->setCountry($country);
+        } else {
+            $user->setCountry(null);
+        }
 
         //sauvegarde
         $em = $this->getDoctrine()->getManager();
@@ -193,7 +194,7 @@ class UserController extends AbstractController
                 return $this->json(['L\'utilisateur connecté n\'est pas le propriétaire du compte à modifier'], Response::HTTP_UNAUTHORIZED);
             }
         }
-        //vérification de l'ancier mot de passe avant de supprimer l'entrée pour ne pas le modifier
+        //vérification de l'ancien mot de passe avant de supprimer l'entrée pour ne pas le modifier
         $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestUserDataEdit['password']);
         unset($requestUserDataEdit['password']);
         //vérification des erreurs
@@ -297,14 +298,14 @@ class UserController extends AbstractController
     }
 
     /**
-    * *Suppression d'un utilisateur
-    * 
-    * @Route("/users/{id}/delete/", name="_delete", methods={"DELETE"}, requirements={"id"="\d+"})
-    * @param User $user
-    * @param FileUploader $fileUploader
-    * @param Resquest $request
-    * @return Response
-    */
+     * *Suppression d'un utilisateur
+     * 
+     * @Route("/users/{id}/delete/", name="_delete", methods={"DELETE"}, requirements={"id"="\d+"})
+     * @param User $user
+     * @param FileUploader $fileUploader
+     * @param Resquest $request
+     * @return Response
+     */
     public function delete(Request $request, User $user): Response
     {
         $requestUserDataDelete = json_decode($request->getContent(), true);
@@ -381,7 +382,7 @@ class UserController extends AbstractController
      * @param ValidatorInterface $validator
      * @return Array
      */
-    private function validationForm($requestBag, string $constraints, $fileCover = null, $fileAvatar = null) 
+    private function validationForm($user, string $constraints, $fileCover = null, $fileAvatar = null) 
     {
         //vérifications des contraintes (assert et manuelles)
         $errors = [];
@@ -395,7 +396,6 @@ class UserController extends AbstractController
             foreach ($brutErrors as $value) { $errors[] = $value->getMessage(); }
         }
         //data
-        $user = $this->objectNormalizer->denormalize($requestBag, User::class);
         $brutErrors = $this->validator->validate($user, null, $constraints);
         foreach ($brutErrors as $value) { $errors[] = $value->getMessage(); }
 
