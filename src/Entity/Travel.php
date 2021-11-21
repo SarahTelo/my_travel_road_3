@@ -22,10 +22,10 @@ class Travel
      * @Groups({
      *      "travel_list_public", 
      *      "travel_list_admin", 
-     *      "travel_detail_private", "travel_detail_public",
-     *      "travel_user_detail",
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "travel_list_private",
      *      "home_detail",
-     *      "category_travel_detail",
+     *      "category_travel_detail_admin", "category_travel_detail",
      * })
      */
     private $id;
@@ -50,10 +50,10 @@ class Travel
      * @Groups({
      *      "travel_list_public", 
      *      "travel_list_admin", 
-     *      "travel_detail_private", "travel_detail_public",
-     *      "travel_user_detail",
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "travel_list_private",
      *      "home_detail",
-     *      "category_travel_detail",
+     *      "category_travel_detail_admin", "category_travel_detail",
      * })
      */
     private $title;
@@ -62,9 +62,8 @@ class Travel
      * @ORM\Column(type="string", length=255, nullable=true)
      * @Groups({
      *      "travel_list_public", 
-     *      "travel_list_admin", 
-     *      "travel_detail_private", "travel_detail_public",
-     *      "travel_user_detail",
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "travel_list_private",
      *      "home_detail",
      *      "category_travel_detail",
      * })
@@ -86,9 +85,8 @@ class Travel
      * )
      * @Groups({
      *      "travel_list_public", 
-     *      "travel_list_admin", 
-     *      "travel_detail_private", "travel_detail_public",
-     *      "travel_user_detail",
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "travel_list_private",
      * })
      */
     private $description;
@@ -96,8 +94,8 @@ class Travel
     /**
      * @ORM\Column(type="datetime", nullable=true)
      * @Groups({
-     *      "travel_list_admin", 
-     *      "travel_detail_private", "travel_detail_public",
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "travel_list_private",
      * })
      */
     private $start_at;
@@ -105,8 +103,8 @@ class Travel
     /**
      * @ORM\Column(type="datetime", nullable=true)
      * @Groups({
-     *      "travel_list_admin", 
-     *      "travel_detail_private", "travel_detail_public",
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "travel_list_private",
      * })
      */
     private $end_at;
@@ -129,7 +127,8 @@ class Travel
      * @Groups({
      *      "travel_list_public", 
      *      "travel_list_admin", 
-     *      "travel_detail_private", "travel_detail_public",
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "travel_list_private",
      *      "home_detail",
      * })
      */
@@ -148,7 +147,8 @@ class Travel
      * )
      * @Groups({
      *      "travel_list_admin",
-     *      "travel_detail_private",
+     *      "travel_detail_admin", "travel_detail_private",
+     *      "travel_list_private",
      * })
      */
     private $visibility;
@@ -156,7 +156,7 @@ class Travel
     /**
      * @ORM\Column(type="datetime_immutable")
      * @Groups({
-     *      "travel_list_admin",
+     *      "travel_detail_admin", "travel_list_admin",
      * })
      */
     private $created_at;
@@ -164,7 +164,7 @@ class Travel
     /**
      * @ORM\Column(type="datetime", nullable=true)
      * @Groups({
-     *      "travel_list_admin",
+     *      "travel_detail_admin", "travel_list_admin",
      * })
      */
     private $updated_at;
@@ -174,9 +174,9 @@ class Travel
      * @ORM\JoinColumn(nullable=false, onDelete="CASCADE")
      * @Groups({
      *      "travel_list_admin", "travel_list_public",
-     *      "travel_detail_public",
+     *      "travel_detail_admin", "travel_detail_public",
      *      "home_detail",
-     *      "category_travel_detail",
+     *      "category_travel_detail_admin", "category_travel_detail",
      * })
      */
     private $user;
@@ -184,9 +184,9 @@ class Travel
     /**
      * @ORM\ManyToMany(targetEntity=Category::class, inversedBy="travels")
      * @Groups({
-     *      "travel_list_public", 
-     *      "travel_detail_private", "travel_detail_public",
-     *      "travel_user_detail",
+     *      "travel_list_admin", "travel_list_public", 
+     *      "travel_detail_public",
+     *      "travel_detail_admin", "travel_list_private", "travel_detail_private",
      *      "home_detail",
      * })
      */

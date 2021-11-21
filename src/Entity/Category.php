@@ -27,10 +27,10 @@ class Category
      * @ORM\Column(type="integer")
      * @Groups({
      *      "category_list_admin", "category_list_public",
-     *      "category_travel_detail",
-     *      "travel_list_public", 
-     *      "travel_detail_private", "travel_detail_public",
-     *      "travel_user_detail",
+     *      "category_travel_detail_admin", "category_travel_detail",
+     *      "travel_list_admin", "travel_list_public", 
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "travel_list_private",
      *      "home_detail",
      * })
      */
@@ -55,10 +55,10 @@ class Category
      * )
      * @Groups({
      *      "category_list_admin", "category_list_public",
-     *      "category_travel_detail",
-     *      "travel_list_public", 
-     *      "travel_detail_private", "travel_detail_public",
-     *      "travel_user_detail",
+     *      "category_travel_detail_admin", "category_travel_detail",
+     *      "travel_list_admin", "travel_list_public", 
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "travel_list_private",
      *      "home_detail",
      * })
      */
@@ -67,7 +67,7 @@ class Category
     /**
      * @ORM\Column(type="datetime_immutable")
      * @Groups({
-     *      "category_list_admin",
+     *      "category_travel_detail_admin", "category_list_admin",
      * })
      */
     private $created_at;
@@ -75,7 +75,7 @@ class Category
     /**
      * @ORM\Column(type="datetime", nullable=true)
      * @Groups({
-     *      "category_list_admin",
+     *      "category_travel_detail_admin", "category_list_admin",
      * })
      */
     private $updated_at;
@@ -83,11 +83,7 @@ class Category
     /**
      * @ORM\ManyToMany(targetEntity=Travel::class, mappedBy="categories")
      * @Groups({
-     *      "travel_list_public", 
-     *      "travel_detail_private", "travel_detail_public",
-     *      "travel_user_detail",
-     *      "home_detail",
-     *      "category_travel_detail",
+     *      "category_travel_detail_admin", "category_travel_detail",
      * })
      */
     private $travels;

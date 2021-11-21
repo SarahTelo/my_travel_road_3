@@ -19,6 +19,11 @@ class UserType extends AbstractType
             ->add('lastname')
             ->add('pseudo')
             ->add('presentation')
+            ->add('_ne_rien_ajouter_', null, ['mapped' => false])
+            ->add('checkPassword', null, ['mapped' => false])
+            ->add('deleteAvatar', null, ['mapped' => false])
+            ->add('deleteCover', null, ['mapped' => false])
+            ->add('country', null, ['mapped' => false])
         ;
     }
 
@@ -26,6 +31,7 @@ class UserType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => User::class,
+            'csrf_protection' => false,
         ]);
     }
 }
