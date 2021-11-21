@@ -52,8 +52,8 @@ security:
         # - { path: ^/profile, roles: ROLE_USER }
         - { path: ^/api/login,      roles: PUBLIC_ACCESS }
         - { path: ^/api/users/new,  roles: PUBLIC_ACCESS }
-        - { path: ^/api,            roles: ROLE_USER     }
         - { path: ^/api/admin,      roles: ROLE_ADMIN    }
+        - { path: ^/api,            roles: ROLE_USER     }
 
 
     role_hierarchy:

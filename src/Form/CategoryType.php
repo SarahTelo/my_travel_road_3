@@ -2,32 +2,27 @@
 
 namespace App\Form;
 
-use App\Entity\Travel;
+use App\Entity\Category;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class TravelType extends AbstractType
+class CategoryType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('title')
-            ->add('cover')
-            ->add('description')
-            ->add('start_at')
-            ->add('end_at')
-            ->add('status')
-            ->add('visibility')
+            ->add('name')
+            ->add('created_at')
+            ->add('updated_at')
             ->add('_ne_rien_ajouter_', null, ['mapped' => false])
-            ->add('deleteCover', null, ['mapped' => false])
         ;
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => Travel::class,
+            'data_class' => Category::class,
             'csrf_protection' => false,
         ]);
     }

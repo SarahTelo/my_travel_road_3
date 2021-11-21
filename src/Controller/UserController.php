@@ -9,18 +9,14 @@ use App\Entity\Travel;
 use App\Repository\TravelRepository;
 use App\Entity\Country;
 use App\Repository\CountryRepository;
-use App\Repository\StepRepository;
-use App\Repository\ImageRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use App\Service\FileUploader;
-use App\Service\AntiSpamService;
 
 /**
 * @Route("/api", name="users")
@@ -30,24 +26,18 @@ class UserController extends AbstractController
     private $passwordHasher;
     private $fileUploader;
     private $validator;
-    private $antiSpam;
     private $objectNormalizer;
-    private $serializer;
 
     public function __construct( 
         UserPasswordHasherInterface $passwordHasher, 
         FileUploader $fileUploader,
-        ValidatorInterface $validator, 
-        AntiSpamService $antiSpam,
-        ObjectNormalizer $objectNormalizer, 
-        SerializerInterface $serializer )
+        ValidatorInterface $validator,
+        ObjectNormalizer $objectNormalizer)
     {
         $this->passwordHasher = $passwordHasher;
-        $this->serializer = $serializer;
         $this->objectNormalizer = $objectNormalizer;
         $this->fileUploader = $fileUploader;
         $this->validator = $validator;
-        $this->antiSpam = $antiSpam;
     }
 
     /**
@@ -70,7 +60,7 @@ class UserController extends AbstractController
             $groups = 'user_list';
         }
         $users = $repository->findAll();
-        return $this->json($users, Response::HTTP_OK, [], ['groups' => $groups]);
+        return $this->json(['userList' => $users], Response::HTTP_OK, [], ['groups' => $groups]);
     }
 
     /**
@@ -111,17 +101,21 @@ class UserController extends AbstractController
      * 
      * @Route("/users/new/", name="_new", methods={"POST"})
      * @param ObjectNormalizer $objectNormalizer
-     * @param ValidatorInterface $validator
+     * @param UserPasswordHasherInterface $passwordHasher
      * @param FileUploader $fileUploader
      * @param Request $request
      * @return Response
      */
-    public function new(Request $request) : Response
+    public function new(Request $request): Response
     {
         //données de la requête
         $requestUserDataNew = $request->request->All();
-        unset($requestUserDataEdit['cover']);
-        unset($requestUserDataEdit['avatar']);
+        unset($requestUserDataNew['cover']);
+        unset($requestUserDataNew['avatar']);
+        if(isset($requestUserDataNew['country'])) {
+            $country = $requestUserDataNew['country'];
+            unset($requestUserDataNew['country']);
+        }
 
         //l'utilisateur est créé ici
         $user = $this->objectNormalizer->denormalize($requestUserDataNew, User::class);
@@ -130,7 +124,7 @@ class UserController extends AbstractController
         $fileAvatar = $request->files->get('avatar');
         $errors = $this->validationForm($user, 'constraints_new', $fileCover, $fileAvatar);
         if (count($errors) > 0 ) {
-            return $this->json($errors, Response::HTTP_BAD_REQUEST);
+            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
         //upload du fichier vers le dossier cible et récupération de son nom
@@ -141,8 +135,8 @@ class UserController extends AbstractController
         //vérification du rôle car l'utilisateur pourrait envoyer la clé "roles" dans le tableau de données reçues dans la $request
         $this->isGranted('ROLE_SUPER_ADMIN') ? $user->setRoles($requestUserDataNew['roles']) : $user->setRoles(['ROLE_USER']);
         //ajout du pays
-        if (isset($requestUserDataNew['country']) && intval($requestUserDataNew['country']) != 0) { 
-            $countryId = intval($requestUserDataNew['country']);
+        if (isset($country) && intval($country) != 0) { 
+            $countryId = intval($country);
             /** @var CountryRepository $repository*/
             $country = $this->getDoctrine()->getRepository(Country::class)->find($countryId);
             $user->setCountry($country);
@@ -156,11 +150,11 @@ class UserController extends AbstractController
             $em->persist($user);
             $em->flush();
         } catch (\Throwable $th) {
-            $message[] = "L'utilisateur <{$requestUserDataNew['email']}> n'a pas pu être ajouté. Veuillez contacter l'administrateur.";
-            return $this->json( $message, Response::HTTP_SERVICE_UNAVAILABLE );
+            $message = "L'utilisateur <{$requestUserDataNew['email']}> n'a pas pu être ajouté. Veuillez contacter l'administrateur.";
+            return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
         
-        return $this->json(['created'], Response::HTTP_CREATED);
+        return $this->json(['code' => 201, 'message' => 'created'], Response::HTTP_CREATED);
     }
 
     /**
@@ -168,47 +162,48 @@ class UserController extends AbstractController
      * 
      * @Route("/users/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
      * @param ObjectNormalizer $objectNormalizer
-     * @param ValidatorInterface $validator
+     * @param UserPasswordHasherInterface $passwordHasher
      * @param FileUploader $fileUploader
      * @param Request $request
+     * @param User $user
      * @return Response
      */
-    public function edit(Request $request, User $user) : Response
+    public function edit(Request $request, User $user): Response
     {
-        $contentType = $request->headers->get('Content-Type');
-        if (!str_contains($contentType, 'multipart/form-data')) {
-            return $this->json(['Nécessite \'multipart/form-data\' dans le header'], Response::HTTP_BAD_REQUEST);
-        }
-
         $requestUserDataEdit = $request->request->All();
         unset($requestUserDataEdit['cover']);
         unset($requestUserDataEdit['avatar']);
-        if(isset($requestUserDataEdit['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestUserDataEdit['_ne_rien_ajouter_'])) {
-            return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
-        }
+        unset($requestUserDataEdit['password']);
+
         //caractéristiques de l'utilisateur connecté
         $userStatus = $this->userStatus($user);
         if(!$userStatus['hasAdminAccess']) { 
             unset($requestUserDataEdit['roles']);
             if(!$userStatus['isCurrentUser']) { 
-                return $this->json(['L\'utilisateur connecté n\'est pas le propriétaire du compte à modifier'], Response::HTTP_UNAUTHORIZED);
+                $message = 'L\'utilisateur connecté n\'est pas le propriétaire du compte à modifier';
+                return $this->json(['code' => 401, 'message' => $message], Response::HTTP_UNAUTHORIZED);
             }
         }
-        //vérification de l'ancien mot de passe avant de supprimer l'entrée pour ne pas le modifier
-        $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestUserDataEdit['password']);
-        unset($requestUserDataEdit['password']);
+
         //vérification des erreurs
         $fileCover = $request->files->get('cover');
         $fileAvatar = $request->files->get('avatar');
-        $errors = $this->validationForm($requestUserDataEdit, 'constraints_edit', $fileCover, $fileAvatar);
-        if (!$checkPassword) { $errors[] = 'Mot de passe incorrect'; }
-        if (count($errors) > 0 ) {
-            return $this->json($errors, Response::HTTP_BAD_REQUEST);
-        }
-
-        //ajout des champs modifiés
         $form = $this->createForm(UserType::class, $user);
         $form->submit($requestUserDataEdit, false);
+        $errors = $this->validationForm($form->getNormData(), 'constraints_edit', $fileCover, $fileAvatar);
+        //vérification du mot de passe après la création du tableau d'erreurs
+        $checkPassword = $this->passwordHasher->isPasswordValid($this->getUser(), $requestUserDataEdit['checkPassword']);
+        if (!$checkPassword) { $errors[] = 'Mot de passe incorrect'; }
+        if(count($errors) === 0 && $form->isValid()) {
+            //l'objet initial récupère les nouvelles données
+            $user = $form->getData();
+        } else {
+            //erreurs liées au formulaire en lui même (extra_fields par exemple)
+            $formErrors = $form->getErrors();
+            foreach ($formErrors as $value) { $errors[] = $value->getMessage(); }
+            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+        }
+
         //gestion des images
         if (isset($fileCover)) {
             //suppression de l'ancien fichier physique s'il existe
@@ -239,49 +234,51 @@ class UserController extends AbstractController
             }
         }
 
+        //gestion du pays
+        if (isset($requestUserDataEdit['country']) && intval($requestUserDataEdit['country']) != 0) { 
+            $countryId = intval($requestUserDataEdit['country']);
+            /** @var CountryRepository $repository*/
+            $country = $this->getDoctrine()->getRepository(Country::class)->find($countryId);
+            $user->setCountry($country);
+        } else {
+            $user->setCountry(null);
+        }
+
         try {
             $this->getDoctrine()->getManager()->flush();
         } catch (\Throwable $th) {
-            $message[] = "L'utilisateur <{$requestUserDataEdit['email']}> n'a pas pu être modifié. Veuillez contacter l'administrateur.";
-            return $this->json( $message, Response::HTTP_SERVICE_UNAVAILABLE );
+            $message = "L'utilisateur <{$requestUserDataEdit['email']}> n'a pas pu être modifié. Veuillez contacter l'administrateur.";
+            return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
-
-        return $this->json(['updated'], Response::HTTP_OK);
+        return $this->json(['code' => 200, 'message' => 'updated'], Response::HTTP_OK);
     }
 
     /**
      * *Modification du mot de passe de l'utilisateur
      * 
      * @Route("/users/{id}/edit/password/", name="_edit_password", methods={"POST"}, requirements={"id"="\d+"})
-     * @param ObjectNormalizer $objectNormalizer
-     * @param ValidatorInterface $validator
+     * @param UserPasswordHasherInterface $passwordHasher
      * @param FileUploader $fileUploader
      * @param Request $request
+     * @param User $user
      * @return Response
      */
-    public function editPassword(Request $request, User $user) : Response
+    public function editPassword(Request $request, User $user): Response
     {
-        $contentType = $request->headers->get('Content-Type');
-        if (!str_contains($contentType, 'multipart/form-data')) {
-            return $this->json(['Nécessite \'multipart/form-data\' dans le header'], Response::HTTP_BAD_REQUEST);
-        }
-
         $requestEditUserPassword = $request->request->All();
-        if(isset($requestEditUserPassword['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestEditUserPassword['_ne_rien_ajouter_'])) {
-            return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
-        }
         //caractéristiques de l'utilisateur connecté
         $userStatus = $this->userStatus($user);
         if(!$userStatus['isCurrentUser']) { 
-            return $this->json(['L\'utilisateur connecté n\'est pas le propriétaire du compte à modifier'], Response::HTTP_UNAUTHORIZED);
+            $message = 'L\'utilisateur connecté n\'est pas le propriétaire du compte à modifier';
+            return $this->json(['code' => 401, 'message' => $message], Response::HTTP_UNAUTHORIZED);
         }
 
         //vérification des erreurs
         $errors = $this->validationForm($requestEditUserPassword, 'constraints_edit_password', null, null);
-        $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestEditUserPassword['oldPassword']);
+        $checkPassword = $this->passwordHasher->isPasswordValid($this->getUser(), $requestEditUserPassword['oldPassword']);
         if (!$checkPassword) { $errors[] = 'Ancien mot de passe incorrect'; }
         if (count($errors) > 0 ) {
-            return $this->json($errors, Response::HTTP_BAD_REQUEST);
+            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
         $user->setPassword($this->passwordHasher->hashPassword($user, $requestEditUserPassword['password']));
@@ -289,12 +286,11 @@ class UserController extends AbstractController
         try {
             $this->getDoctrine()->getManager()->flush();
         } catch (\Throwable $th) {
-            return $this->json(
-                ["L'utilisateur <{$requestEditUserPassword['email']}> n'a pas pu être modifié. Veuillez contacter l'administrateur."], Response::HTTP_SERVICE_UNAVAILABLE
-            );
+            $message = "L'utilisateur <{$requestEditUserPassword['email']}> n'a pas pu être modifié. Veuillez contacter l'administrateur.";
+            return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
         
-        return $this->json(['updated'], Response::HTTP_OK);
+        return $this->json(['code' => 200, 'message' => 'updated'], Response::HTTP_OK);
     }
 
     /**
@@ -302,26 +298,29 @@ class UserController extends AbstractController
      * 
      * @Route("/users/{id}/delete/", name="_delete", methods={"DELETE"}, requirements={"id"="\d+"})
      * @param User $user
+     * @param UserPasswordHasherInterface $passwordHasher
      * @param FileUploader $fileUploader
      * @param Resquest $request
+     * @param User $user
      * @return Response
      */
     public function delete(Request $request, User $user): Response
     {
         $requestUserDataDelete = json_decode($request->getContent(), true);
-        if(isset($requestUserDataDelete['_ne_rien_ajouter_']) && $this->antiSpam->antiSpam($requestUserDataDelete['_ne_rien_ajouter_'])) {
-            return $this->json(['Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
+        if(isset($requestUserDataDelete['_ne_rien_ajouter_']) && $requestUserDataDelete['_ne_rien_ajouter_'] != null) {
+            return $this->json(['code' => 400, 'message' => 'Qui êtes-vous?'], Response::HTTP_BAD_REQUEST);
         }
         //caractéristiques de l'utilisateur connecté
         $userStatus = $this->userStatus($user);
         if(!$this->isGranted('ROLE_SUPER_ADMIN')) { 
             if(!$userStatus['isCurrentUser']) { 
-                return $this->json(['L\'utilisateur connecté n\'est pas le propriétaire du compte à supprimer'], Response::HTTP_UNAUTHORIZED);
+                $message = 'L\'utilisateur connecté n\'est pas le propriétaire du compte à supprimer';
+                return $this->json(['code' => 401, 'message' => $message], Response::HTTP_UNAUTHORIZED);
             }
         }
         $errors = [];
-        //vérification de l'ancier mot de passe
-        $checkPassword = $this->passwordHasher->isPasswordValid($user, $requestUserDataDelete['password']);
+        //vérification du mot de passe
+        $checkPassword = $this->passwordHasher->isPasswordValid($this->getUser(), $requestUserDataDelete['checkPassword']);
         if (!$checkPassword) { $errors[] = 'Mot de passe incorrect'; }
 
         $mail = $user->getEmail();
@@ -338,27 +337,26 @@ class UserController extends AbstractController
             try {
                 $em->remove($user);
                 $em->flush();
-                $message[] = 'deleted';
+                $message = 'deleted';
                 $statusCode = Response::HTTP_OK; 
             } catch (\Throwable $th) {
-                $message[] = "L'utilisateur <{$mail}> n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
+                $message = "L'utilisateur <{$mail}> n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
                 $statusCode = Response::HTTP_SERVICE_UNAVAILABLE;
             }
         } else {
-            $message[] = "L'utilisateur <{$mail}> n'a pas été supprimé car les fichiers physiques '$userCover' ou '$userAvatar' existent toujours.Veuillez contacter l'administrateur.";
+            $message = "L'utilisateur <{$mail}> n'a pas été supprimé car les fichiers physiques '$userCover' ou '$userAvatar' existent toujours.Veuillez contacter l'administrateur.";
             $statusCode = Response::HTTP_SERVICE_UNAVAILABLE;
         }
-
-        return $this->json($message, $statusCode);
+        return $this->json(['code' => $statusCode, 'message' => $message], $statusCode);
     }
 
     /**
-     * *Tableau des autorisations de l'utilisateur
+     * *Tableau des autorisations de l'utilisateur actuel
      *
      * @param Entity $user
      * @return array
      */
-    private function userStatus($user) : Array
+    private function userStatus($user): Array
     {
         $userStatus = [];
 
@@ -374,7 +372,7 @@ class UserController extends AbstractController
     /**
      * *Vérification des contraintes pour les champs du formulaire
      *
-     * @param Mixed $requestBag
+     * @param User $user
      * @param string $constraints
      * @param File $fileCover = null
      * @param File $fileAvatar = null
@@ -382,7 +380,7 @@ class UserController extends AbstractController
      * @param ValidatorInterface $validator
      * @return Array
      */
-    private function validationForm($user, string $constraints, $fileCover = null, $fileAvatar = null) 
+    private function validationForm($user, string $constraints, $fileCover = null, $fileAvatar = null): Array
     {
         //vérifications des contraintes (assert et manuelles)
         $errors = [];
@@ -398,7 +396,7 @@ class UserController extends AbstractController
         //data
         $brutErrors = $this->validator->validate($user, null, $constraints);
         foreach ($brutErrors as $value) { $errors[] = $value->getMessage(); }
-
+        //dd($errors);
         return $errors;
     }
 

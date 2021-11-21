@@ -26,7 +26,7 @@ class ProcessFormService
      * @param Mixed $class
      * @param Mixed $requestBag
      * @param string $constraintsType
-     * @param File $fileCover = null
+     * @param File $fileCover
      * @param ObjectNormalizer $objectNormalizer
      * @param ValidatorInterface $validator
      * @return Array
@@ -46,17 +46,53 @@ class ProcessFormService
         return $errors;
     }
 
-    
+    /**
+     * *Vérification des contraintes pour les champs du formulaire mode édition
+     *
+     * @param Mixed $class
+     * @param Mixed $requestBag
+     * @param string $propertyFileName
+     * @param File $fileCover
+     * @param ValidatorInterface $validator
+     * @return Array
+     */
+    public function validationFormEdit($form, $requestBag, string $propertyFileName = null, $file = null) 
+    {
+        $errors = [];
+        $data = ['entity' => [], 'errors' => []];
+
+        //vérifications des contraintes (assert et manuelles)
+        $form->submit($requestBag, false);
+        $entityErrors = $this->validator->validate($form->getNormData(), null, ['constraints_edit']);
+        foreach ($entityErrors as $value) { $errors[$value->getPropertyPath()] = $value->getMessage(); }
+        if(count($entityErrors) === 0 && $form->isValid()) {
+            //l'objet initial récupère les nouvelles données
+            $entity = $form->getData();
+            $data['entity'] = $entity;
+        } else {
+            //erreurs liées au formulaire en lui même (extra_fields par exemple)
+            $formErrors = $form->getErrors();
+            foreach ($formErrors as $value) { $errors['formError'] = $value->getMessage(); }
+            $data['errors'] = $errors;
+        }
+
+        //files
+        $brutErrors = $this->imageContraints($file);
+        foreach ($brutErrors as $value) { $data['errors'][$propertyFileName] = $value->getMessage(); }
+
+        return $data;
+    }
+
     /**
      * *Vérifications des contraintes d'une image
      *
      * @param ValidatorInterface $validator
-     * @param file $imageData
+     * @param file $file
      * @return array
      */
-    private function imageContraints($imageData)
+    private function imageContraints($file)
     {
-        return $this->validator->validate($imageData, [
+        return $this->validator->validate($file, [
             new File([
                 'maxSize' => '1M',
                 'mimeTypes' => [ 'image/*' ],

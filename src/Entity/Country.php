@@ -27,7 +27,7 @@ class Country
      * @ORM\Column(type="integer")
      * @Groups({
      *      "country_list_admin", "country_list_public",
-     *      "country_user_detail",
+     *      "country_user_detail_admin", "country_user_detail",
      *      "home_detail",
      *      "user_list_admin",
      *      "user_detail", "user_profile",
@@ -54,7 +54,7 @@ class Country
      * )
      * @Groups({
      *      "country_list_admin", "country_list_public",
-     *      "country_user_detail",
+     *      "country_user_detail_admin", "country_user_detail",
      *      "home_detail",
      *      "user_list_admin",
      *      "user_detail",
@@ -82,7 +82,7 @@ class Country
      * )
      * @Groups({
      *      "country_list_admin", "country_list_public",
-     *      "country_user_detail",
+     *      "country_user_detail_admin", "country_user_detail",
      *      "home_detail",
      * })
      */
@@ -107,7 +107,7 @@ class Country
     /**
      * @ORM\OneToMany(targetEntity=User::class, mappedBy="country")
      * @Groups({
-     *      "country_user_detail",
+     *      "country_user_detail_admin", "country_user_detail",
      * })
      */
     private $users;

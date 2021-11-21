@@ -32,9 +32,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @Groups({
      *      "user_list", "user_list_admin", "user_profile", "user_detail",
      *      "travel_list_admin", "travel_list_public",
-     *      "travel_detail_public",
+     *      "travel_detail_admin", "travel_detail_public",
      *      "home_detail",
-     *      "category_travel_detail",
+     *      "category_travel_detail_admin", "category_travel_detail",
+     *      "country_user_detail_admin", "country_user_detail",
      * })
      */
     private $id;
@@ -186,6 +187,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      "travel_detail_public",
      *      "home_detail",
      *      "category_travel_detail",
+     *      "country_user_detail_admin", "country_user_detail",
      * })
      */
     private $pseudo;
@@ -218,6 +220,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      "travel_detail_public",
      *      "home_detail",
      *      "category_travel_detail",
+     *      "country_user_detail",
      * })
      */
     private $avatar;
