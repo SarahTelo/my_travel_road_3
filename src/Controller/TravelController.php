@@ -7,6 +7,7 @@ use App\Form\TravelType;
 use App\Repository\TravelRepository;
 use App\Entity\Category;
 use App\Repository\CategoryRepository;
+use App\Entity\Step;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,6 +17,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Service\FileUploader;
 use App\Service\ProcessFormService;
 use DateTime;
+use Symfony\Component\Serializer\SerializerInterface;
 
 /**
 * @Route("/api", name="travels")
@@ -26,17 +28,20 @@ class TravelController extends AbstractController
     private $objectNormalizer;
     private $processForm;
     private $passwordHasher;
+    private $serializer;
 
     public function __construct( 
         FileUploader $fileUploader,
         ObjectNormalizer $objectNormalizer, 
         ProcessFormService $processForm,
-        UserPasswordHasherInterface $passwordHasher)
+        UserPasswordHasherInterface $passwordHasher, 
+        SerializerInterface $serializer)
     {
         $this->objectNormalizer = $objectNormalizer;
         $this->fileUploader = $fileUploader;
         $this->processForm = $processForm;
         $this->passwordHasher = $passwordHasher;
+        $this->serializer = $serializer;
     }
 
     /**
@@ -119,10 +124,9 @@ class TravelController extends AbstractController
      * *Ajout d'un voyage
      * 
      * @Route("/travels/new/", name="_new", methods={"POST"})
-     * @param ObjectNormalizer $objectNormalizer
      * @param FileUploader $fileUploader
      * @param ProcessFormService $processForm
-     * @param ObjectNormalizer $objectNormalizer
+     * @param SerializerInterface $serializer
      * @param Request $request
      * @return Response
      */
@@ -141,13 +145,12 @@ class TravelController extends AbstractController
         }
 
         //vérification des erreurs
-        $errors = $this->processForm->validationForm(Travel::class, $requestTravelNew, 'constraints_new', $fileCover);
+        $travel = $this->serializer->deserialize(json_encode($requestTravelNew), Travel::class, 'json');
+        $errors = $this->processForm->validationFormNew($travel, 'constraints_new', $fileCover);
         if (count($errors) > 0 ) {
             return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
-        //le voyage est créé ici
-        $travel = $this->objectNormalizer->denormalize($requestTravelNew, Travel::class);
         $travel->setUser($this->getUser());
         //upload du fichier vers le dossier cible et récupération de son nom
         if (isset($fileCover)) { $travel->setCover($this->fileUploader->upload($fileCover)); }
@@ -163,16 +166,25 @@ class TravelController extends AbstractController
             }
         }
 
+        //création de l'étape de départ
+        $step = (new Step())
+            ->setTitle('Départ')
+            ->setTravel($travel)
+            ->setSequence(1)
+        ;
+        if (null !== $travel->getStartAt()) { $step->setStartAt($travel->getStartAt()); }
+
         //sauvegarde
-        $em = $this->getDoctrine()->getManager();
         try {
+            $em = $this->getDoctrine()->getManager();
             $em->persist($travel);
+            $em->persist($step);
             $em->flush();
         } catch (\Throwable $th) {
             $message = "Le voyage '{$requestTravelNew['title']}' n'a pas pu être ajouté. Veuillez contacter l'administrateur.";
             return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
-        return $this->json(['code' => 201, 'message' => ['travel_id' => $travel->getId()]], Response::HTTP_CREATED);
+        return $this->json(['code' => 201, 'message' => ['travel_id' => $travel->getId(), 'step_id' => $step->getId()]], Response::HTTP_CREATED);
     }
 
     /**
@@ -252,8 +264,8 @@ class TravelController extends AbstractController
         }
 
         //sauvegarde
-        $em = $this->getDoctrine()->getManager();
         try {
+            $em = $this->getDoctrine()->getManager();
             $em->flush();
         } catch (\Throwable $th) {
             $message = "Le voyage '{$requestTravelEdit['title']}' n'a pas pu être ajouté. Veuillez contacter l'administrateur.";
@@ -307,11 +319,11 @@ class TravelController extends AbstractController
                 $message = 'deleted';
                 $statusCode = Response::HTTP_OK; 
             } catch (\Throwable $th) {
-                $message = "L'utilisateur <{$title}> n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
+                $message = "Le voyage <{$title}> n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
                 $statusCode = Response::HTTP_SERVICE_UNAVAILABLE;
             }
         } else {
-            $message = "L'utilisateur <{$title}> n'a pas été supprimé car le fichier physique '$travelCover' existe toujours.Veuillez contacter l'administrateur.";
+            $message = "Le voyage <{$title}> n'a pas été supprimé car le fichier physique '$travelCover' existe toujours. Veuillez contacter l'administrateur.";
             $statusCode = Response::HTTP_SERVICE_UNAVAILABLE;
         }
         return $this->json(['code' => $statusCode, 'message' => $message], $statusCode);

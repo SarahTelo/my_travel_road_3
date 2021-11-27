@@ -26,6 +26,8 @@ class Travel
      *      "travel_list_private",
      *      "home_detail",
      *      "category_travel_detail_admin", "category_travel_detail",
+     *      "step_list_admin", "step_list_private", "step_list_public",
+     *      "step_detail_admin", "step_detail_private", "step_detail_public", 
      * })
      */
     private $id;
@@ -54,6 +56,8 @@ class Travel
      *      "travel_list_private",
      *      "home_detail",
      *      "category_travel_detail_admin", "category_travel_detail",
+     *      "step_list_admin", "step_list_private", "step_list_public",
+     *      "step_detail_admin", "step_detail_private", "step_detail_public", 
      * })
      */
     private $title;
@@ -66,6 +70,8 @@ class Travel
      *      "travel_list_private",
      *      "home_detail",
      *      "category_travel_detail",
+     *      "step_list_private", "step_list_public",
+     *      "step_detail_admin", "step_detail_private", "step_detail_public", 
      * })
      */
     private $cover;
@@ -122,7 +128,7 @@ class Travel
      * )
      * @Assert\PositiveOrZero(
      *      groups={"constraints_new", "constraints_edit"},
-     *      message = "Le status doit avoir pour valeur 0, 1 ou 2."
+     *      message = "Le statut doit avoir pour valeur 0, 1 ou 2."
      * )
      * @Groups({
      *      "travel_list_public", 
@@ -130,6 +136,8 @@ class Travel
      *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
      *      "travel_list_private",
      *      "home_detail",
+     *      "step_list_private", "step_list_public",
+     *      "step_detail_admin", "step_detail_private", "step_detail_public", 
      * })
      */
     private $status;
@@ -149,6 +157,7 @@ class Travel
      *      "travel_list_admin",
      *      "travel_detail_admin", "travel_detail_private",
      *      "travel_list_private",
+     *      "step_list_private", "step_list_public",
      * })
      */
     private $visibility;
@@ -192,12 +201,21 @@ class Travel
      */
     private $categories;
 
+    /**
+     * @ORM\OneToMany(targetEntity=Step::class, mappedBy="travel", orphanRemoval=true)
+     * @Groups({
+     *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     * })
+     */
+    private $steps;
+
     public function __construct()
     {
         $this->created_at = new \DateTimeImmutable('NOW');
         $this->status = 2;
         $this->visibility = 0;
         $this->categories = new ArrayCollection();
+        $this->steps = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -345,6 +363,36 @@ class Travel
     public function removeCategory(Category $category): self
     {
         $this->categories->removeElement($category);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Step[]
+     */
+    public function getSteps(): Collection
+    {
+        return $this->steps;
+    }
+
+    public function addStep(Step $step): self
+    {
+        if (!$this->steps->contains($step)) {
+            $this->steps[] = $step;
+            $step->setTravel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeStep(Step $step): self
+    {
+        if ($this->steps->removeElement($step)) {
+            // set the owning side to null (unless already changed)
+            if ($step->getTravel() === $this) {
+                $step->setTravel(null);
+            }
+        }
 
         return $this;
     }
