@@ -12,12 +12,11 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Service\FileUploader;
 use App\Service\ProcessFormService;
 use DateTime;
-use Symfony\Component\Serializer\SerializerInterface;
 
 /**
 * @Route("/api", name="travels")
@@ -25,19 +24,16 @@ use Symfony\Component\Serializer\SerializerInterface;
 class TravelController extends AbstractController
 {
     private $fileUploader;
-    private $objectNormalizer;
     private $processForm;
     private $passwordHasher;
     private $serializer;
 
-    public function __construct( 
+    public function __construct(
         FileUploader $fileUploader,
-        ObjectNormalizer $objectNormalizer, 
         ProcessFormService $processForm,
-        UserPasswordHasherInterface $passwordHasher, 
+        UserPasswordHasherInterface $passwordHasher,
         SerializerInterface $serializer)
     {
-        $this->objectNormalizer = $objectNormalizer;
         $this->fileUploader = $fileUploader;
         $this->processForm = $processForm;
         $this->passwordHasher = $passwordHasher;
@@ -96,7 +92,7 @@ class TravelController extends AbstractController
     {
         $currentUser = $this->getUser();
         if ($currentUser->getId() === $travel->getUser()->getId()) {
-            //sans l'utilisateur (propriétaire)
+            //sans le propriétaire
             $groups = 'travel_detail_private';
         } else {
             //avec l'utilisateur
@@ -130,29 +126,29 @@ class TravelController extends AbstractController
      * @param Request $request
      * @return Response
      */
-    public function new(Request $request) : Response
+    public function new(Request $request): Response
     {
         //préparation des données
         $requestTravelNew = $request->request->All();
-        //évite d'ajouter dans la db un string qui ne correspond à aucune image
-        unset($requestTravelNew['cover']);
         $requestTravelNew['status'] = intval($requestTravelNew['status']);
         $requestTravelNew['visibility'] = boolval($requestTravelNew['visibility']);
-        $fileCover = $request->files->get('cover');
         if (isset($requestTravelNew['categories'])) {
             $categories = $requestTravelNew['categories'];
             unset($requestTravelNew['categories']);
         }
-
-        //vérification des erreurs
+        //évite d'ajouter dans la db un string qui ne correspond à aucune image
+        unset($requestTravelNew['cover']);
+        
+        //création de l'objet et vérification des erreurs (méthode qui évite les erreurs liées au format des dates)
         $travel = $this->serializer->deserialize(json_encode($requestTravelNew), Travel::class, 'json');
-        $errors = $this->processForm->validationFormNew($travel, 'constraints_new', $fileCover);
+        $fileCover = $request->files->get('cover');
+        $errors = $this->processForm->validationFormNew($travel, $fileCover);
         if (count($errors) > 0 ) {
             return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
+        //ajout des éléments particuliers
         $travel->setUser($this->getUser());
-        //upload du fichier vers le dossier cible et récupération de son nom
         if (isset($fileCover)) { $travel->setCover($this->fileUploader->upload($fileCover)); }
 
         //gestion des catégories
@@ -172,7 +168,7 @@ class TravelController extends AbstractController
             ->setTravel($travel)
             ->setSequence(1)
         ;
-        if (null !== $travel->getStartAt()) { $step->setStartAt($travel->getStartAt()); }
+        if ($travel->getStartAt() !== null) { $step->setStartAt($travel->getStartAt()); }
 
         //sauvegarde
         try {
@@ -198,9 +194,8 @@ class TravelController extends AbstractController
      * @param Travel $travel
      * @return Response
      */
-    public function edit(Request $request, Travel $travel) : Response
+    public function edit(Request $request, Travel $travel): Response
     {
-        //caractéristiques de l'utilisateur connecté
         $userStatus = $this->userStatus($travel);
         if(!$userStatus['hasAdminAccess']) { 
             if(!$userStatus['isTravelOwner']) { 
@@ -211,19 +206,20 @@ class TravelController extends AbstractController
 
         //préparation des données
         $requestTravelEdit = $request->request->All();
-        //évite d'ajouter dans la db un string qui ne correspond à aucune image
-        unset($requestTravelEdit['cover']);
+        $oldTravelTitle = $travel->getTitle();
         if(isset($requestTravelEdit['status'])) { $requestTravelEdit['status'] = intval($requestTravelEdit['status']); }
         if(isset($requestTravelEdit['visibility'])) { $requestTravelEdit['visibility'] = boolval($requestTravelEdit['visibility']); }
-        $fileCover = $request->files->get('cover');
         if (isset($requestTravelEdit['categories'])) {
             $categories = $requestTravelEdit['categories'];
             unset($requestTravelEdit['categories']);
         }
-
+        //évite d'ajouter dans la db un string qui ne correspond à aucune image
+        unset($requestTravelEdit['cover']);
+        
         //création d'un formulaire avec les anciennes données et vérification des contraintes
         $form = $this->createForm(TravelType::class, $travel);
-        $entity = $this->processForm->validationFormEdit($form, $requestTravelEdit, 'cover', $fileCover);
+        $fileCover = $request->files->get('cover');
+        $entity = $this->processForm->validationFormEdit($form, $requestTravelEdit, $fileCover);
         if(empty($entity['errors'])) {
             $travel = $form->getData();
         } else {
@@ -233,12 +229,15 @@ class TravelController extends AbstractController
         //gestion des dates
         if (isset($requestTravelEdit['start_at'])) { $travel->setStartAt(new DateTime($requestTravelEdit['start_at'])); }
         if (isset($requestTravelEdit['end_at'])) { $travel->setEndAt(new DateTime($requestTravelEdit['end_at'])); }
+        /** @var StepRepository */
+        //* à décommenter quand tous les voyages auront une étape 1
+        //!$firstStep = $this->getDoctrine()->getRepository(Step::class)->findBy(['sequence' => 1]);
+        //!$firstStep->setStartAt($travel->getStartAt());
 
         //gestion des images
         if (isset($fileCover)) {
             //suppression de l'ancien fichier physique s'il existe
             if ($travel->getCover() != null) { $this->fileUploader->deleteFile($travel->getCover()); }
-            //upload
             $newFilenameCover = $this->fileUploader->upload($fileCover);
             $travel->setCover($newFilenameCover);
         }
@@ -265,10 +264,9 @@ class TravelController extends AbstractController
 
         //sauvegarde
         try {
-            $em = $this->getDoctrine()->getManager();
-            $em->flush();
+            $this->getDoctrine()->getManager()->flush();
         } catch (\Throwable $th) {
-            $message = "Le voyage '{$requestTravelEdit['title']}' n'a pas pu être ajouté. Veuillez contacter l'administrateur.";
+            $message = "Le voyage '{$oldTravelTitle}' n'a pas pu être modifié. Veuillez contacter l'administrateur.";
             return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
         return $this->json(['code' => 200, 'message' => 'updated'], Response::HTTP_OK);
@@ -299,43 +297,52 @@ class TravelController extends AbstractController
             } 
         }
 
-        //vérification de l'ancier mot de passe
+        //vérification de l'ancien mot de passe
         $checkPassword = $this->passwordHasher->isPasswordValid($this->getUser(), $requestDataToDeleteTravel['password']);
         if (!$checkPassword) {
             return $this->json(['code' => 400, 'message' => 'Mot de passe incorrect'], Response::HTTP_BAD_REQUEST);
         }
 
-        $title = $travel->getTitle();
-        $travelCover = $travel->getCover();
-        //si "not null": ça veut dire que l'image physique n'exite pas mais son chemin dans la db existe format 'string' (ce qui est effaçable via remove)
-        $travelCover !== null ? $coverDeleted = $this->fileUploader->deleteFile($travelCover) : $coverDeleted = true;
+        //liste des noms des fichiers physiques à supprimer
+        $fileList = [];
+        $fileList[] = $travel->getCover();
+        foreach ($travel->getSteps() as $step) { $fileList[] = $step->getCover(); }
+        //* à rajouter dans le foreach
+        //!foreach ($step->getImages() as $image) {
+        //!    $fileList[] = $image->getPath(); 
+        //!}
 
-        //s'il n'y a plus d'images associées ou qu'elles ont bien été supprimées
-        if(($travelCover === null || $coverDeleted)) {
-            try {
-                $em = $this->getDoctrine()->getManager();
-                $em->remove($travel);
-                $em->flush();
-                $message = 'deleted';
-                $statusCode = Response::HTTP_OK; 
-            } catch (\Throwable $th) {
-                $message = "Le voyage <{$title}> n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
-                $statusCode = Response::HTTP_SERVICE_UNAVAILABLE;
-            }
-        } else {
-            $message = "Le voyage <{$title}> n'a pas été supprimé car le fichier physique '$travelCover' existe toujours. Veuillez contacter l'administrateur.";
-            $statusCode = Response::HTTP_SERVICE_UNAVAILABLE;
+        //sauvegarde
+        try {
+            $em = $this->getDoctrine()->getManager();
+            $em->remove($travel);
+            $em->flush();
+        } catch (\Throwable $th) {
+            $message = "Le voyage <{$travel->getTitle()}> n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
+            return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
-        return $this->json(['code' => $statusCode, 'message' => $message], $statusCode);
+
+        //suppression des fichiers physiques
+        foreach ($fileList as $file) { 
+            if($file != null) { 
+                try{ $this->fileUploader->deleteFile($file); }
+                catch(\Throwable $th) { 
+                    //$fileListToRemoveManually['travel'] = $travelId; 
+                    $fileListToRemoveManually['files'] = $file; 
+                }
+            }
+        }
+        //todo: envoyer un email aux administrateurs avec la liste: "$fileListToRemoveManually"
+        return $this->json(['code' => 200, 'message' => 'deleted'], Response::HTTP_OK);
     }
 
     /**
-     * *Tableau des autorisations de l'utilisateur
+     * *Tableau des autorisations de l'utilisateur actuel
      *
-     * @param Entity $user
+     * @param Travel $travel
      * @return array
      */
-    private function userStatus($travel) : Array
+    private function userStatus($travel): Array
     {
         $userStatus = [];
 

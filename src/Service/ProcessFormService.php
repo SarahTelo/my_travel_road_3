@@ -5,18 +5,13 @@ namespace App\Service;
 use App\Entity\Travel;
 use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 
 class ProcessFormService
 {
     private $validator;
-    private $objectNormalizer;
     
-    public function __construct( 
-        ValidatorInterface $validator,
-        ObjectNormalizer $objectNormalizer )
+    public function __construct(ValidatorInterface $validator)
     {
-        $this->objectNormalizer = $objectNormalizer;
         $this->validator = $validator;
     }
 
@@ -24,21 +19,30 @@ class ProcessFormService
      * *Vérification des contraintes pour les champs du formulaire
      *
      * @param Mixed $entity
-     * @param string $constraintsType
-     * @param File $fileCover
+     * @param File $coverFile
+     * @param File $avatarFile
      * @param ValidatorInterface $validator
      * @return Array
      */
-    public function validationFormNew($entity, string $constraintsType, $file = null) : array
+    public function validationFormNew($entity, $coverFile = null, $avatarFile = null) : array
     {
         //vérifications des contraintes (assert et manuelles)
         $errors = [];
         //data
-        $brutErrors = $this->validator->validate($entity, null, $constraintsType);
+        $brutErrors = $this->validator->validate($entity, null, 'constraints_new');
         foreach ($brutErrors as $value) { $errors[$value->getPropertyPath()] = $value->getMessage(); }
+
         //file
-        $brutErrors = $this->imageContraints($file);
-        foreach ($brutErrors as $value) { $errors['cover'] = $value->getMessage(); }
+        if (isset($coverFile)) {
+            $brutErrors = $this->imageContraints($coverFile);
+            foreach ($brutErrors as $value) { $errors['cover'] = $value->getMessage(); }
+        }
+
+        //avatar file
+        if (isset($avatarFile)) {
+            $brutErrors = $this->imageContraints($avatarFile);
+            foreach ($brutErrors as $value) { $errors['avatar'] = $value->getMessage(); }
+        }
 
         return $errors;
     }
@@ -46,14 +50,14 @@ class ProcessFormService
     /**
      * *Vérification des contraintes pour les champs du formulaire mode édition
      *
-     * @param Mixed $class
+     * @param Mixed $form
      * @param Mixed $requestBag
-     * @param string $propertyFileName
-     * @param File $fileCover
+     * @param File $coverFile
+     * @param File $avatarFile
      * @param ValidatorInterface $validator
      * @return Array
      */
-    public function validationFormEdit($form, $requestBag, string $propertyFileName = null, $file = null) : array
+    public function validationFormEdit($form, $requestBag, $coverFile = null, $avatarFile = null) : array
     {
         $errors = [];
         $data = ['entity' => [], 'errors' => []];
@@ -74,9 +78,16 @@ class ProcessFormService
             $data['errors'] = $errors;
         }
 
-        //file
-        $brutErrors = $this->imageContraints($file);
-        foreach ($brutErrors as $value) { $data['errors'][$propertyFileName] = $value->getMessage(); }
+        if (isset($coverFile)) {
+            $brutErrors = $this->imageContraints($coverFile);
+            foreach ($brutErrors as $value) { $data['errors']['cover'] = $value->getMessage(); }
+        }
+
+        //avatar file
+        if (isset($avatarFile)) {
+            $brutErrors = $this->imageContraints($avatarFile);
+            foreach ($brutErrors as $value) { $data['errors']['avatar'] = $value->getMessage(); }
+        }
 
         return $data;
     }

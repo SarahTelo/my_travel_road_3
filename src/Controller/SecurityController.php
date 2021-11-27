@@ -15,7 +15,7 @@ class SecurityController extends AbstractController
      *
      * @return Response
      */
-    public function isLogged() : Response 
+    public function isLogged(): Response 
     {
         return $this->json( [
             'code' => 200, 

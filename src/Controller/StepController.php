@@ -119,7 +119,7 @@ class StepController extends AbstractController
         $dataSteps['step'] = $step;
         return $this->json($dataSteps, Response::HTTP_OK, [], ['groups' => 'step_detail_admin']);
     }
-    
+
     /**
      * *Ajout d'une étape
      * 
@@ -130,7 +130,7 @@ class StepController extends AbstractController
      * @param Request $request
      * @return Response
      */
-    public function new(Request $request) : Response
+    public function new(Request $request): Response
     {
         /** @var TravelRepository */
         $travelId = intval($request->attributes->get('id'));
@@ -145,13 +145,13 @@ class StepController extends AbstractController
 
         //préparation des données
         $requestStepNew = $request->request->All();
-        $fileCover = $request->files->get('cover');
         //évite d'ajouter dans la db un string qui ne correspond à aucune image
         unset($requestStepNew['cover']);
 
         //création de l'objet et vérification des erreurs (méthode qui évite les erreurs liées au format des dates)
         $step = $this->serializer->deserialize(json_encode($requestStepNew), Step::class, 'json');
-        $errors = $this->processForm->validationFormNew($step, 'constraints_new', $fileCover);
+        $fileCover = $request->files->get('cover');
+        $errors = $this->processForm->validationFormNew($step, $fileCover);
         if (count($errors) > 0 ) {
             return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
@@ -184,7 +184,7 @@ class StepController extends AbstractController
      * @param Request $request
      * @return Response
      */
-    public function edit(Request $request, Step $step) : Response
+    public function edit(Request $request, Step $step): Response
     {
         $userStatus = $this->userStatus($step->getTravel());
         if(!$userStatus['isTravelOwner']) {
@@ -196,13 +196,14 @@ class StepController extends AbstractController
 
         //préparation des données
         $requestStepEdit = $request->request->All();
-        $fileCover = $request->files->get('cover');
+        $oldStepTitle = $step->getTitle();
         //évite d'ajouter dans la db un string qui ne correspond à aucune image
         if (isset($requestStepEdit['cover'])) { unset($requestStepEdit['cover']); }
-
+        
         //création d'un formulaire avec les anciennes données et vérification des contraintes
         $form = $this->createForm(StepType::class, $step);
-        $entity = $this->processForm->validationFormEdit($form, $requestStepEdit, 'cover', $fileCover);
+        $fileCover = $request->files->get('cover');
+        $entity = $this->processForm->validationFormEdit($form, $requestStepEdit, $fileCover);
         if(empty($entity['errors'])) {
             $step = $form->getData();
         } else {
@@ -216,7 +217,6 @@ class StepController extends AbstractController
         if (isset($fileCover)) {
             //suppression de l'ancien fichier physique s'il existe
             if ($step->getCover() != null) { $this->fileUploader->deleteFile($step->getCover()); }
-            //upload
             $newFilenameCover = $this->fileUploader->upload($fileCover);
             $step->setCover($newFilenameCover);
         }
@@ -236,7 +236,7 @@ class StepController extends AbstractController
             $em->persist($step);
             $em->flush();
         } catch (\Throwable $th) {
-            $message = "L'étape '{$requestStepEdit['title']}' n'a pas pu être ajoutée. Veuillez contacter l'administrateur.";
+            $message = "L'étape '{$oldStepTitle}' n'a pas pu être ajoutée. Veuillez contacter l'administrateur.";
             return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
         return $this->json(['code' => 200, 'message' => ['step_id' => $step->getId()]], Response::HTTP_OK);
@@ -259,25 +259,35 @@ class StepController extends AbstractController
                 return $this->json(['code' => 401, 'message' => $message], Response::HTTP_UNAUTHORIZED);
             }
         }
-        $stepCover = $step->getCover();
-        $stepCover !== null ? $coverDeleted = $this->fileUploader->deleteFile($stepCover) : $coverDeleted = true;
 
-        if(($stepCover === null || $coverDeleted)) {
-            try {
-                $em = $this->getDoctrine()->getManager();
-                $em->remove($step);
-                $em->flush();
-                $message = 'deleted';
-                $statusCode = Response::HTTP_OK;
-            } catch (\Throwable $th) {
-                $message = "L'étape <{$step->getTitle()}> n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
-                $statusCode = Response::HTTP_SERVICE_UNAVAILABLE;
-            }
-        } else {
-            $message = "L'étape <{$step->getTitle()}> n'a pas été supprimé car le fichier physique '$stepCover' existe toujours.Veuillez contacter l'administrateur.";
-            $statusCode = Response::HTTP_SERVICE_UNAVAILABLE;
+        //liste des noms des fichiers physiques à supprimer
+        $fileList = [];
+        $fileList[] = $step->getCover();
+        //* à décommenter quand les images seront créées
+        //!foreach ($step->getImages() as $file) { $fileList[] = $file->getPath(); }
+
+        //sauvegarde
+        try {
+            $em = $this->getDoctrine()->getManager();
+            $em->remove($step);
+            $em->flush();
+        } catch (\Throwable $th) {
+            $message = "L'étape <{$step->getTitle()}> n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
+            return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
-        return $this->json(['code' => $statusCode, 'message' => $message], $statusCode);
+
+        //suppression des fichiers physiques
+        foreach ($fileList as $file) { 
+            if($file != null) { 
+                try{ $this->fileUploader->deleteFile($file); }
+                catch(\Throwable $th) { 
+                    //$fileListToRemoveManually['step'] = $stepId; 
+                    $fileListToRemoveManually['files'] = $file; 
+                }
+            }
+        }
+        //todo: envoyer un email aux administrateurs avec la liste: "$fileListToRemoveManually"
+        return $this->json(['code' => 200, 'message' => 'deleted'], Response::HTTP_OK);
     }
 
     /**
@@ -286,7 +296,7 @@ class StepController extends AbstractController
      * @param Travel $travel
      * @return array
      */
-    private function userStatus(Travel $travel) : Array
+    private function userStatus(Travel $travel): Array
     {
         $userStatus = [];
 

@@ -81,7 +81,6 @@ class CountryController extends AbstractController
      */
     public function new(Request $request): Response
     {
-        //données de la requête
         $requestCountryNew = $request->request->All();
         //création de l'objet et vérification de ses contraintes
         $errors = [];
@@ -93,8 +92,8 @@ class CountryController extends AbstractController
         }
 
         //sauvegarde
-        $em = $this->getDoctrine()->getManager();
         try {
+            $em = $this->getDoctrine()->getManager();
             $em->persist($country);
             $em->flush();
         } catch (\Throwable $th) {
@@ -115,8 +114,8 @@ class CountryController extends AbstractController
      */
     public function edit(Request $request, Country $country): Response
     {
-        //données de la requête
         $requestCountryEdit = $request->request->All();
+        $oldCountryName = $country->getName();
         //création d'un formulaire avec les anciennes données et vérification des contraintes
         $form = $this->createForm(CountryType::class, $country);
         $entity = $this->processForm->validationFormEdit($form, $requestCountryEdit);
@@ -128,10 +127,9 @@ class CountryController extends AbstractController
 
         //sauvegarde
         try {
-            $em = $this->getDoctrine()->getManager();
-            $em->flush();
+            $this->getDoctrine()->getManager()->flush();
         } catch (\Throwable $th) {
-            $message = "Le pays '{$requestCountryEdit['name']}' n'a pas pu être modifié. Veuillez contacter l'administrateur.";
+            $message = "Le pays '{$oldCountryName}' n'a pas pu être modifié. Veuillez contacter l'administrateur.";
             return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
         return $this->json(['code' => 200, 'message' => 'updated'], Response::HTTP_OK);
@@ -146,9 +144,8 @@ class CountryController extends AbstractController
      */
     public function delete(Country $country): Response
     {
-        $countryName = $country->getName();
         if(count($country->getUsers()) !== 0) {
-            $message = "Le pays '{$countryName}' n'a pas pu être supprimé car il reste des utilisateurs qui lui sont liés.";
+            $message = "Le pays '{$country->getName()}' n'a pas pu être supprimé car il reste des utilisateurs qui lui sont liés.";
             return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
 
@@ -158,7 +155,7 @@ class CountryController extends AbstractController
             $em->remove($country);
             $em->flush();
         } catch (\Throwable $th) {
-            $message = "Le pays '{$countryName}' n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
+            $message = "Le pays '{$country->getName()}' n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
             return $this->json( ['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE );
         }
         return $this->json(['code' => 200, 'message' => 'deleted'], Response::HTTP_OK);
