@@ -10,7 +10,6 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use App\Service\ProcessFormService;
 
 /**
@@ -91,9 +90,8 @@ class CategoryController extends AbstractController
      * @param Request $request
      * @return Response
      */
-    public function new(Request $request) : Response
+    public function new(Request $request): Response
     {
-        //données de la requête
         $requestCategoryNew = $request->request->All();
         //création de l'objet et vérification de ses contraintes
         $errors = [];
@@ -105,8 +103,8 @@ class CategoryController extends AbstractController
         }
 
         //sauvegarde
-        $em = $this->getDoctrine()->getManager();
         try {
+            $em = $this->getDoctrine()->getManager();
             $em->persist($category);
             $em->flush();
         } catch (\Throwable $th) {
@@ -125,10 +123,10 @@ class CategoryController extends AbstractController
      * @param Request $request
      * @return Response
      */
-    public function edit(Request $request, Category $category) : Response
+    public function edit(Request $request, Category $category): Response
     {
-        //données de la requête
         $requestCategoryEdit = $request->request->All();
+        $oldCategoryName = $category->getName();
         //création d'un formulaire avec les anciennes données et vérification des contraintes
         $form = $this->createForm(CategoryType::class, $category);
         $entity = $this->processForm->validationFormEdit($form, $requestCategoryEdit);
@@ -140,10 +138,9 @@ class CategoryController extends AbstractController
 
         //sauvegarde
         try {
-            $em = $this->getDoctrine()->getManager();
-            $em->flush();
+            $this->getDoctrine()->getManager()->flush();
         } catch (\Throwable $th) {
-            $message = "La catégorie '{$requestCategoryEdit['name']}' n'a pas pu être modifiée. Veuillez contacter l'administrateur.";
+            $message = "La catégorie '{$oldCategoryName}' n'a pas pu être modifiée. Veuillez contacter l'administrateur.";
             return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
         return $this->json(['code' => 200, 'message' => 'updated'], Response::HTTP_OK);
@@ -156,11 +153,10 @@ class CategoryController extends AbstractController
      * @param Category $category
      * @return Response
      */
-    public function delete(Category $category) : Response
+    public function delete(Category $category): Response
     {
-        $categoryName = $category->getName();
         if(count($category->getTravels()) !== 0) {
-            $message = "La catégorie '{$categoryName}' n'a pas pu être supprimée car il reste des voyages qui lui sont liés.";
+            $message = "La catégorie '{$category->getName()}' n'a pas pu être supprimée car il reste des voyages qui lui sont liés.";
             return $this->json( ['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE );
         }
 
@@ -170,7 +166,7 @@ class CategoryController extends AbstractController
             $em->remove($category);
             $em->flush();
         } catch (\Throwable $th) {
-            $message = "La catégorie '{$categoryName}' n'a pas pu être supprimée. Veuillez contacter l'administrateur.";
+            $message = "La catégorie '{$category->getName()}' n'a pas pu être supprimée. Veuillez contacter l'administrateur.";
             return $this->json( ['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE );
         }
         return $this->json(['code' => 200, 'message' => 'deleted'], Response::HTTP_OK);

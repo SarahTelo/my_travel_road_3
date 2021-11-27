@@ -115,7 +115,6 @@ class Step
 
     /**
      * @ORM\Column(type="datetime", nullable=true)
-     * @Assert\DateTime
      * @Groups({
      *      "step_list_admin", "step_list_private", "step_list_public",
      *      "step_detail_admin", "step_detail_private", "step_detail_public", 

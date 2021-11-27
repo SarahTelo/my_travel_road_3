@@ -13,8 +13,6 @@ class CategoryType extends AbstractType
     {
         $builder
             ->add('name')
-            ->add('created_at')
-            ->add('updated_at')
             ->add('_ne_rien_ajouter_', null, ['mapped' => false])
         ;
     }
