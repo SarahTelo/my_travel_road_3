@@ -1,0 +1,44 @@
+<?php
+
+namespace App\DataFixtures;
+
+use App\Entity\Step;
+use App\Entity\Travel;
+use App\Repository\TravelRepository;
+use DateTime;
+use DateTimeImmutable;
+use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Persistence\ObjectManager;
+use Faker\Factory;
+
+class StepFixtures extends Fixture
+{
+    /**
+     * Création de données automatiques en base de données
+     *
+     * @param ObjectManager $manager
+     * @return void
+     */
+    public function load(ObjectManager $manager)
+    {
+        /** @var TravelRepository $repository */
+        $travels = $manager->getRepository(Travel::class)->findAll();
+
+        $faker = Factory::create('fr_FR');
+        for ($i = 1; $i < 4; $i++) {
+            $step = new Step();
+            $step
+                ->setTitle($faker->sentence())
+                ->setSequence(1)
+                ->setStartCoordinate($faker->latitude($min = -90, $max = 90).'/'.$faker->longitude($min = -180, $max = 180))
+                ->setDescription($faker->paragraph())
+                ->setStartAt(DateTime::createFromFormat('Y-m-d', $faker->date()))
+                ->setTravel($travels[array_rand($travels)])
+                ->setCreatedAt(DateTimeImmutable::createFromFormat('Y-m-d', $faker->date()))
+                ->setUpdatedAt(DateTime::createFromFormat('Y-m-d', $faker->date()))
+            ;
+            $manager->persist($step);
+        }
+        $manager->flush();
+    }
+}

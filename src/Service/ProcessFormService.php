@@ -23,25 +23,22 @@ class ProcessFormService
     /**
      * *Vérification des contraintes pour les champs du formulaire
      *
-     * @param Mixed $class
-     * @param Mixed $requestBag
+     * @param Mixed $entity
      * @param string $constraintsType
      * @param File $fileCover
-     * @param ObjectNormalizer $objectNormalizer
      * @param ValidatorInterface $validator
      * @return Array
      */
-    public function validationForm($class, $requestBag, string $constraintsType, $file = null) 
+    public function validationFormNew($entity, string $constraintsType, $file = null) : array
     {
         //vérifications des contraintes (assert et manuelles)
         $errors = [];
-        //files
-        $brutErrors = $this->imageContraints($file);
-        foreach ($brutErrors as $value) { $errors[] = $value->getMessage(); }
         //data
-        $entity = $this->objectNormalizer->denormalize($requestBag, $class);
         $brutErrors = $this->validator->validate($entity, null, $constraintsType);
-        foreach ($brutErrors as $value) { $errors[] = $value->getMessage(); }
+        foreach ($brutErrors as $value) { $errors[$value->getPropertyPath()] = $value->getMessage(); }
+        //file
+        $brutErrors = $this->imageContraints($file);
+        foreach ($brutErrors as $value) { $errors['cover'] = $value->getMessage(); }
 
         return $errors;
     }
@@ -56,7 +53,7 @@ class ProcessFormService
      * @param ValidatorInterface $validator
      * @return Array
      */
-    public function validationFormEdit($form, $requestBag, string $propertyFileName = null, $file = null) 
+    public function validationFormEdit($form, $requestBag, string $propertyFileName = null, $file = null) : array
     {
         $errors = [];
         $data = ['entity' => [], 'errors' => []];
@@ -65,6 +62,7 @@ class ProcessFormService
         $form->submit($requestBag, false);
         $entityErrors = $this->validator->validate($form->getNormData(), null, ['constraints_edit']);
         foreach ($entityErrors as $value) { $errors[$value->getPropertyPath()] = $value->getMessage(); }
+
         if(count($entityErrors) === 0 && $form->isValid()) {
             //l'objet initial récupère les nouvelles données
             $entity = $form->getData();
@@ -76,7 +74,7 @@ class ProcessFormService
             $data['errors'] = $errors;
         }
 
-        //files
+        //file
         $brutErrors = $this->imageContraints($file);
         foreach ($brutErrors as $value) { $data['errors'][$propertyFileName] = $value->getMessage(); }
 
