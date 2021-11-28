@@ -277,6 +277,7 @@ class UserController extends AbstractController
         }
 
         //vérification des erreurs
+        $errors = [];
         $userPasswordTest = (new User())->setPassword($requestEditUserPassword['password']);
         $brutErrors = $this->validator->validate($userPasswordTest, null, 'constraints_edit_password');
         foreach ($brutErrors as $value) { $errors['password'] = $value->getMessage(); }
