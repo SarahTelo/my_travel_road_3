@@ -27,10 +27,12 @@ class CategoryFixtures extends Fixture
         $faker = Factory::create('fr_FR');
         for ($i = 1; $i < 4; $i++) {
             $category = new Category();
-            $category->setName($faker->word());
-            $category->addTravel($travels[array_rand($travels)]);
-            $category->setCreatedAt(DateTimeImmutable::createFromFormat('Y-m-d', $faker->date()));
-            $category->setUpdatedAt(DateTime::createFromFormat('Y-m-d', $faker->date()));
+            $category
+                ->setName($faker->word())
+                ->addTravel($travels[array_rand($travels)])
+                ->setCreatedAt(DateTimeImmutable::createFromFormat('Y-m-d', $faker->date()))
+                ->setUpdatedAt(DateTime::createFromFormat('Y-m-d', $faker->date()))
+            ;
             $manager->persist($category);
         }
         $manager->flush();
