@@ -2,9 +2,9 @@
 
 namespace App\Service;
 
-use App\Entity\Travel;
 use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use DateTime;
 
 class ProcessFormService
 {
@@ -16,84 +16,85 @@ class ProcessFormService
     }
 
     /**
-     * *Vérification des contraintes pour les champs du formulaire
+     * Vérification des contraintes liées au formulaire et à l'objet (entity)
      *
-     * @param Mixed $entity
-     * @param File $coverFile
-     * @param File $avatarFile
-     * @param ValidatorInterface $validator
-     * @return Array
+     * @param object $form
+     * @param array $fileArray
+     * @return array
      */
-    public function validationFormNew($entity, $coverFile = null, $avatarFile = null) : array
+    public function validationForm(Object $form, Array $fileArray = null): Array
     {
-        //vérifications des contraintes (assert et manuelles)
-        $errors = [];
-        //data
-        $brutErrors = $this->validator->validate($entity, null, 'constraints_new');
-        foreach ($brutErrors as $value) { $errors[$value->getPropertyPath()] = $value->getMessage(); }
-
-        //file
-        if (isset($coverFile)) {
-            $brutErrors = $this->imageContraints($coverFile);
-            foreach ($brutErrors as $value) { $errors['cover'] = $value->getMessage(); }
+        foreach ($form->getErrors(true) as $value) {
+            $property = $value->getOrigin()->getName();
+            $errors[$property][] = $value->getMessage();
         }
-
-        //avatar file
-        if (isset($avatarFile)) {
-            $brutErrors = $this->imageContraints($avatarFile);
-            foreach ($brutErrors as $value) { $errors['avatar'] = $value->getMessage(); }
+        if ($fileArray !== null) {
+            foreach ($fileArray as $property => $file) {
+                $brutErrors = $this->imageContraints($file);
+                foreach ($brutErrors as $value) { $errors[$property][] = $value->getMessage(); }
+            }
         }
 
         return $errors;
     }
 
     /**
-     * *Vérification des contraintes pour les champs du formulaire mode édition
+     * Préparation des donnés d'un utilisateur
      *
-     * @param Mixed $form
-     * @param Mixed $requestBag
-     * @param File $coverFile
-     * @param File $avatarFile
-     * @param ValidatorInterface $validator
-     * @return Array
+     * @param array $requestUser
+     * @return array
      */
-    public function validationFormEdit($form, $requestBag, $coverFile = null, $avatarFile = null) : array
+    public function prepareDataUser(Array $requestUser, $type = null): array
     {
-        $errors = [];
-        $data = ['entity' => [], 'errors' => []];
-
-        //vérifications des contraintes (assert et manuelles)
-        $form->submit($requestBag, false);
-        $entityErrors = $this->validator->validate($form->getNormData(), null, ['constraints_edit']);
-        foreach ($entityErrors as $value) { $errors[$value->getPropertyPath()] = $value->getMessage(); }
-
-        if(count($entityErrors) === 0 && $form->isValid()) {
-            //l'objet initial récupère les nouvelles données
-            $entity = $form->getData();
-            $data['entity'] = $entity;
-        } else {
-            //erreurs liées au formulaire en lui même (extra_fields par exemple)
-            $formErrors = $form->getErrors();
-            foreach ($formErrors as $value) { $errors['formError'] = $value->getMessage(); }
-            $data['errors'] = $errors;
+        if($type === 'edit') {
+            unset($requestUser['password']);
         }
-
-        if (isset($coverFile)) {
-            $brutErrors = $this->imageContraints($coverFile);
-            foreach ($brutErrors as $value) { $data['errors']['cover'] = $value->getMessage(); }
-        }
-
-        //avatar file
-        if (isset($avatarFile)) {
-            $brutErrors = $this->imageContraints($avatarFile);
-            foreach ($brutErrors as $value) { $data['errors']['avatar'] = $value->getMessage(); }
-        }
-
-        return $data;
+        unset($requestUser['cover']);
+        unset($requestUser['avatar']);
+        return $requestUser;
     }
 
     /**
-     * *Vérifications des contraintes d'une image
+     * Préparation des donnés de voyage
+     *
+     * @param array $requestTravel
+     * @param string $type
+     * @return array
+     */
+    public function prepareDataTravel(Array $requestTravel, string $type = null): array
+    {   
+        if (isset($requestTravel['start_at'])) { $requestTravel['start_at'] = new DateTime($requestTravel['start_at']); }
+        if (isset($requestTravel['end_at'])) { $requestTravel['end_at'] = new DateTime($requestTravel['end_at']); }
+        //évite d'ajouter dans la db un string qui ne correspond à aucune image
+        if (isset($requestTravel['cover'])) { unset($requestTravel['cover']); }
+        if (isset($requestTravel['categories']) && count($requestTravel['categories']) !== 0) {
+            $categories = $requestTravel['categories'];
+            foreach ($categories as $key => $category) { $categories[$key] = intval($category); }
+        }
+        if ($type !== null && $type === 'new') {
+            $requestTravel['visibility'] = boolval($requestTravel['visibility']);
+        } else {
+            if (isset($requestTravel['visibility'])) { $requestTravel['visibility'] = boolval($requestTravel['visibility']); }
+        }
+        return $requestTravel;
+    }
+
+    /**
+     * Préparation des donnés d'une étape
+     *
+     * @param array $requestStep
+     * @return array
+     */
+    public function prepareDataStep(Array $requestStep): array
+    {
+        //évite d'ajouter dans la db un string qui ne correspond à aucune image
+        if (isset($requestStep['cover'])) { unset($requestStep['cover']); }
+        if (isset($requestStep['start_at'])) { $requestStep['start_at'] = new DateTime($requestStep['start_at']); }
+        return $requestStep;
+    }
+
+    /**
+     * Vérifications des contraintes d'une image
      *
      * @param ValidatorInterface $validator
      * @param file $file

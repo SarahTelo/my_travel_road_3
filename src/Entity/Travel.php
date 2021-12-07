@@ -148,11 +148,6 @@ class Travel
      *      groups={"constraints_new"},
      *      message = "La visibilité ne doit pas être vide."
      * )
-     * @Assert\Type(
-     *      groups={"constraints_new"},
-     *      type="boolean",
-     *      message = "La visibilité n'a pas le bon format."
-     * )
      * @Groups({
      *      "travel_list_admin",
      *      "travel_detail_admin", "travel_detail_private",

@@ -11,9 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
-//todo: au lieu de mettre les 2 derniers voyages et inscrits, mettre (en html) un voyage et un utilisateur préfabriqué pour donner un exemple
-
-class CentralController extends AbstractController
+class MainController extends AbstractController
 {
     /**
      * @Route("/", name="welcome")
@@ -24,20 +22,28 @@ class CentralController extends AbstractController
     }
 
     /**
-     * *Page d'accueil avec la liste des 2 derniers voyages ajoutés et les 2 derniers utilisateurs inscrits
+     * *Page d'accueil avec un utilisateur et un voyage au hasard
      * 
      * @Route("/api/", name="home")
      */
-    public function home()
+    public function home(): Response
     {
-        /** @var UserRepository */
-        $users = $this->getDoctrine()->getRepository(User::class)->findBy([], ['id' => 'DESC'], 2, null);
         /** @var TravelRepository */
-        $travels = $this->getDoctrine()->getRepository(Travel::class)->findBy(['visibility' => 1], ['id' => 'DESC'], 2, null);
+        $travelRepository = $this->getDoctrine()->getRepository(Travel::class);
+        $travelsId = $travelRepository->findAllTravelsIdByVisibility();
+        $numberOfTravel = array_rand($travelsId, 1);
+        $travel = $travelRepository->find($travelsId[$numberOfTravel]['id']);
+
+        /** @var UserRepository */
+        $userRepository = $this->getDoctrine()->getRepository(User::class);
+        $usersId = $userRepository->findAllUsersId();
+        $numberOfUser = array_rand($usersId, 1);
+        $user = $userRepository->find($usersId[$numberOfUser]['id']);
+
         return $this->json([
             'currentUserHomeDetail' => $this->getUser(),
-            'usersHomeList' => $users,
-            'travelsHomeList' => $travels,
+            'usersHomeList' => $user,
+            'travelsHomeList' => $travel,
         ], Response::HTTP_OK, [], ['groups' => 'home_detail']);
     }
 }

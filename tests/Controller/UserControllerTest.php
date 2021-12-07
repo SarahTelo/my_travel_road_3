@@ -3,7 +3,6 @@
 namespace App\Tests\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use App\Entity\User;
 use App\Tests\ReuseFunctions;
 
 /**
@@ -13,38 +12,55 @@ class UserControllerTest extends WebTestCase
 {
     use ReuseFunctions;
 
+    //*DATA PROVIDERS*******************************
+
+    /**
+     * Données pour créer des utilisateurs
+     *
+     * @return iterable
+     */
+    public function provideUserData(): iterable
+    {
+        yield 'user1' => [
+            "route" => '/api/users/new/',
+            "email" => "user1@user.com",
+            "password" => "user",
+            "pseudo" => "mon pseudo",
+            "_ne_rien_ajouter_" => "",
+        ];
+        yield 'user2' => [
+            "route" => '/api/users/new/',
+            "email" => "user2@user.com",
+            "password" => "user",
+            "pseudo" => "mon pseudo",
+            "_ne_rien_ajouter_" => "",
+        ];
+    }
+
     //*NEW******************************************
 
     /**
      * Ajouter un utilisateur
      *
+     * @dataProvider provideUserData
      * @return void
      */
-    public function testSuccessfullUserNew() : void
+    public function testSuccessfullUsersNew($route, $email, $pass, $pseudo, $spam) : void
     {
-        //php bin/phpunit --filter testSuccessfullUserNew
+        //php bin/phpunit --filter testSuccessfullUsersNew@user1
+        //php bin/phpunit --filter "testSuccessfullUsersNew@.*user.*"
         $client = static::createClient([], [
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
         $client->request(
-            'POST', 
-            '/api/users/new/',
-            [
-                "email" => "user1@user.com",
-                "password" => "user",
-                "pseudo" => "mon pseudo",
-                "_ne_rien_ajouter_" => "",
-            ]
-        );
-        $client->request(
-            'POST', 
-            '/api/users/new/',
-            [
-                "email" => "user2@user.com",
-                "password" => "user",
-                "pseudo" => "mon pseudo",
-                "_ne_rien_ajouter_" => "",
-            ]
+            'POST',
+            $route,
+                [
+                    "email" => $email,
+                    "password" => $pass,
+                    "pseudo" => $pseudo,
+                    "_ne_rien_ajouter_" => $spam,
+                ]
         );
         $this->assertResponseIsSuccessful();
     }
@@ -60,7 +76,7 @@ class UserControllerTest extends WebTestCase
         $client = static::createClient([], [
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
-        $user = $this->getUserTest('super.admin@admin.com');
+        $user = $this->getUserByEmail('super.admin@admin.com');
         $client->loginUser($user);
         $client->request(
             'POST', 
@@ -89,7 +105,7 @@ class UserControllerTest extends WebTestCase
         $client = static::createClient([], [
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
-        $user = $this->getUserTest('user1@user.com');
+        $user = $this->getUserByEmail('user1@user.com');
         $client->loginUser($user);
         $client->request(
             'POST', 
@@ -114,9 +130,9 @@ class UserControllerTest extends WebTestCase
         $client = static::createClient([], [
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
-        $currentUser = $this->getUserTest('admin@admin.com');
+        $currentUser = $this->getUserByEmail('admin@admin.com');
         $client->loginUser($currentUser);
-        $userToEdit = $this->getUserTest('user1@user.com');
+        $userToEdit = $this->getUserByEmail('user1@user.com');
         $client->request(
             'POST',
             '/api/users/'.$userToEdit->getId().'/edit/',
@@ -140,9 +156,9 @@ class UserControllerTest extends WebTestCase
         $client = static::createClient([], [
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
-        $currentUser = $this->getUserTest('user1@user.com');
+        $currentUser = $this->getUserByEmail('user1@user.com');
         $client->loginUser($currentUser);
-        $userToEdit = $this->getUserTest('admin@admin.com');
+        $userToEdit = $this->getUserByEmail('admin@admin.com');
         $client->request(
             'POST', 
             '/api/users/'.$userToEdit->getId().'/edit/',
@@ -168,7 +184,7 @@ class UserControllerTest extends WebTestCase
         $client = static::createClient([], [
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
-        $user = $this->getUserTest('user1@user.com');
+        $user = $this->getUserByEmail('user1@user.com');
         $client->loginUser($user);
         $client->request(
             'POST', 
@@ -193,9 +209,9 @@ class UserControllerTest extends WebTestCase
         $client = static::createClient([], [
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
-        $currentUser = $this->getUserTest('admin@admin.com');
+        $currentUser = $this->getUserByEmail('admin@admin.com');
         $client->loginUser($currentUser);
-        $userToEdit = $this->getUserTest('user1@user.com');
+        $userToEdit = $this->getUserByEmail('user1@user.com');
         $client->request(
             'POST',
             '/api/users/'.$userToEdit->getId().'/edit/password/',
@@ -219,9 +235,9 @@ class UserControllerTest extends WebTestCase
     {
         //php bin/phpunit --filter testFailedUserDelete
         $client = static::createClient();
-        $currentUser = $this->getUserTest('user2@user.com');
+        $currentUser = $this->getUserByEmail('user2@user.com');
         $client->loginUser($currentUser);
-        $userToDelete = $this->getUserTest('user1@user.com');
+        $userToDelete = $this->getUserByEmail('user1@user.com');
         $client->request(
             'DELETE',
             '/api/users/'.$userToDelete->getId().'/delete/',
@@ -242,9 +258,9 @@ class UserControllerTest extends WebTestCase
     {
         //php bin/phpunit --filter testFailedAdminUserDelete
         $client = static::createClient();
-        $currentUser = $this->getUserTest('admin@admin.com');
+        $currentUser = $this->getUserByEmail('admin@admin.com');
         $client->loginUser($currentUser);
-        $userToDelete = $this->getUserTest('user1@user.com');
+        $userToDelete = $this->getUserByEmail('user1@user.com');
         $client->request(
             'DELETE',
             '/api/users/'.$userToDelete->getId().'/delete/',
@@ -265,7 +281,7 @@ class UserControllerTest extends WebTestCase
     {
         //php bin/phpunit --filter testSuccessfullUserDelete
         $client = static::createClient();
-        $user = $this->getUserTest('user2@user.com');
+        $user = $this->getUserByEmail('user2@user.com');
         $client->loginUser($user);
         $client->request(
             'DELETE',
@@ -288,9 +304,9 @@ class UserControllerTest extends WebTestCase
         //php bin/phpunit --filter testSuccessfullSuperAdminUserDelete
         $client = static::createClient();
 
-        $currentUser = $this->getUserTest('super.admin@admin.com');
+        $currentUser = $this->getUserByEmail('super.admin@admin.com');
         $client->loginUser($currentUser);
-        $userToDelete = $this->getUserTest('user1@user.com');
+        $userToDelete = $this->getUserByEmail('user1@user.com');
         $client->request(
             'DELETE',
             '/api/users/'.$userToDelete->getId().'/delete/',
@@ -307,13 +323,13 @@ class UserControllerTest extends WebTestCase
      *
      * @return void
      */
-    public function testSuccessfullDeleteSuperAdmin2() : void
+    public function testSuccessfullDeleteSuperAdmin() : void
     {
         //php bin/phpunit --filter testSuccessfullDeleteSuperAdmin2
         $client = static::createClient();
-        $currentUser = $this->getUserTest('super.admin@admin.com');
+        $currentUser = $this->getUserByEmail('super.admin@admin.com');
         $client->loginUser($currentUser);
-        $userToDelete = $this->getUserTest('super.admin2@admin.com');
+        $userToDelete = $this->getUserByEmail('super.admin2@admin.com');
         $client->request(
             'DELETE',
             '/api/users/'.$userToDelete->getId().'/delete/',

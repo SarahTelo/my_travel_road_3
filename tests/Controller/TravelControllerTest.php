@@ -53,7 +53,7 @@ class TravelControllerTest extends WebTestCase
         $client = static::createClient([], [
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
-        $user = $this->getUserTest('user3@user.com');
+        $user = $this->getUserByEmail('user3@user.com');
         $client->loginUser($user);
         $client->request(
             'POST',
@@ -61,7 +61,7 @@ class TravelControllerTest extends WebTestCase
             [
                 "title" => "travel 1",
                 "status" => 0,
-                "visibility" => true,
+                "visibility" => 0,
                 "_ne_rien_ajouter_" => "",
             ]
         );
@@ -82,7 +82,7 @@ class TravelControllerTest extends WebTestCase
         $client = static::createClient([], [
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
-        $currentUser = $this->getUserTest('user3@user.com');
+        $currentUser = $this->getUserByEmail('user3@user.com');
         $travel = $this->getTravelByUser($currentUser->getId());
         $client->loginUser($currentUser);
         $client->request(
@@ -109,8 +109,8 @@ class TravelControllerTest extends WebTestCase
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
 
-        $currentUser = $this->getUserTest('user4@user.com');
-        $ownerTravelUser = $this->getUserTest('user3@user.com');
+        $currentUser = $this->getUserByEmail('user4@user.com');
+        $ownerTravelUser = $this->getUserByEmail('user3@user.com');
         $travel = $this->getTravelByUser($ownerTravelUser->getId());
 
         $client->loginUser($currentUser);
@@ -138,8 +138,8 @@ class TravelControllerTest extends WebTestCase
             'HTTP_CONTENT_TYPE' => 'multipart/form-data', 'CONTENT_TYPE' => 'multipart/form-data'
         ]);
 
-        $currentUser = $this->getUserTest('admin@admin.com');
-        $ownerTravelUser = $this->getUserTest('user3@user.com');
+        $currentUser = $this->getUserByEmail('admin@admin.com');
+        $ownerTravelUser = $this->getUserByEmail('user3@user.com');
         $travel = $this->getTravelByUser($ownerTravelUser->getId());
 
         $client->loginUser($currentUser);
@@ -167,8 +167,8 @@ class TravelControllerTest extends WebTestCase
         //php bin/phpunit --filter testFailedTravelDelete
         $client = static::createClient();
 
-        $currentUser = $this->getUserTest('user4@user.com');
-        $ownerTravelUser = $this->getUserTest('user3@user.com');
+        $currentUser = $this->getUserByEmail('user4@user.com');
+        $ownerTravelUser = $this->getUserByEmail('user3@user.com');
         $travel = $this->getTravelByUser($ownerTravelUser->getId());
 
         $client->loginUser($currentUser);
@@ -194,7 +194,7 @@ class TravelControllerTest extends WebTestCase
         //php bin/phpunit --filter testSuccessfulTravelDelete
         $client = static::createClient();
 
-        $currentUser = $this->getUserTest('user3@user.com');
+        $currentUser = $this->getUserByEmail('user3@user.com');
         $travel = $this->getTravelByUser($currentUser->getId());
 
         $client->loginUser($currentUser);
@@ -218,7 +218,7 @@ class TravelControllerTest extends WebTestCase
     {
         //php bin/phpunit --filter testSuccessfulAdminTravelDelete
         $client = static::createClient();
-        $currentUser = $this->getUserTest('admin@admin.com');
+        $currentUser = $this->getUserByEmail('admin@admin.com');
         $client->loginUser($currentUser);
         $travel = static::getContainer()->get(TravelRepository::class)->findOneBy([], ['id' => 'ASC']);
         $client->request(

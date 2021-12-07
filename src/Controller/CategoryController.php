@@ -8,8 +8,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use App\Service\ProcessFormService;
 
 /**
@@ -17,17 +15,10 @@ use App\Service\ProcessFormService;
 */
 class CategoryController extends AbstractController
 {
-    private $validator;
-    private $objectNormalizer;
     private $processForm;
 
-    public function __construct( 
-        ValidatorInterface $validator, 
-        ObjectNormalizer $objectNormalizer, 
-        ProcessFormService $processForm)
+    public function __construct(ProcessFormService $processForm)
     {
-        $this->objectNormalizer = $objectNormalizer;
-        $this->validator = $validator;
         $this->processForm = $processForm;
     }
     
@@ -85,23 +76,27 @@ class CategoryController extends AbstractController
      * *Ajout d'une catégorie
      * 
      * @Route("/admin/category/new/", name="_new", methods={"POST"})
-     * @param ValidatorInterface $validator
-     * @param ObjectNormalizer $objectNormalizer
+     * @param ProcessFormService $processForm
      * @param Request $request
      * @return Response
      */
     public function new(Request $request): Response
     {
+        //préparation des données
         $requestCategoryNew = $request->request->All();
-        //création de l'objet et vérification de ses contraintes
+        //formulaire
+        $form = $this->createForm(CategoryType::class, null, ['validation_groups' => 'constraints_new']);
+        $form->submit($requestCategoryNew, false);
+        //vérification des contraintes
         $errors = [];
-        $category = $this->objectNormalizer->denormalize($requestCategoryNew, Category::class);
-        $brutErrors = $this->validator->validate($category, null, 'constraints_new');
-        foreach ($brutErrors as $value) { $errors[$value->getPropertyPath()] = $value->getMessage(); }
-        if (count($errors) > 0 ) {
-            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+        if (!$form->isValid()) {
+            $errors = $this->processForm->validationForm($form);
+            if (!empty($errors)) {
+                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+            }
         }
-
+        //création de la catégorie
+        $category = $form->getData();
         //sauvegarde
         try {
             $em = $this->getDoctrine()->getManager();
@@ -118,24 +113,27 @@ class CategoryController extends AbstractController
      * *Modification d'une catégorie
      * 
      * @Route("/admin/category/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
-     * @param Category $category
      * @param ProcessFormService $processForm
+     * @param Category $category
      * @param Request $request
      * @return Response
      */
     public function edit(Request $request, Category $category): Response
     {
-        $requestCategoryEdit = $request->request->All();
         $oldCategoryName = $category->getName();
-        //création d'un formulaire avec les anciennes données et vérification des contraintes
-        $form = $this->createForm(CategoryType::class, $category);
-        $entity = $this->processForm->validationFormEdit($form, $requestCategoryEdit);
-        if(empty($entity['errors'])) {
-            $category = $form->getData();
-        } else {
-            return $this->json(['code' => 400, 'message' => $entity['errors']], Response::HTTP_BAD_REQUEST);
+        //préparation des données
+        $requestCategoryEdit = $request->request->All();
+        //formulaire
+        $form = $this->createForm(CategoryType::class, $category, ['validation_groups' => 'constraints_edit']);
+        $form->submit($requestCategoryEdit, false);
+        //vérification des contraintes
+        $errors = [];
+        if (!$form->isValid()) {
+            $errors = $this->processForm->validationForm($form);
+            if (!empty($errors)) {
+                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+            }
         }
-
         //sauvegarde
         try {
             $this->getDoctrine()->getManager()->flush();

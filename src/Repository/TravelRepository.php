@@ -39,6 +39,22 @@ class TravelRepository extends ServiceEntityRepository
         ;
     }
 
+    /**
+     * Tous les ID des voyages visisibles
+     *
+     * @return array
+     */
+    public function findAllTravelsIdByVisibility(): array
+    {
+        return $this->createQueryBuilder('travels')
+            ->select('travels.id', 'travels.visibility')
+            ->andWhere('travels.visibility = :val')
+            ->setParameter('val', true)
+            ->getQuery()
+            ->getResult()
+        ;
+    }
+
     // /**
     //  * @return Travel[] Returns an array of Travel objects
     //  */
