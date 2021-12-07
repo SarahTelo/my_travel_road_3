@@ -128,7 +128,7 @@ class StepControllerTest extends WebTestCase
         $step = static::getContainer()->get(StepRepository::class)->findOneBy([], ['id' => 'ASC']);
         $travel = $step->getTravel();
         $ownerTravel = $travel->getUser();
-        $currentUser = $this->getUserTest('admin@admin.com');
+        $currentUser = $this->getUserByEmail('admin@admin.com');
         $client->loginUser($currentUser);
         $client->request(
             'POST',
@@ -219,7 +219,7 @@ class StepControllerTest extends WebTestCase
         ]);
         $step = static::getContainer()->get(StepRepository::class)->findOneBy([], ['id' => 'ASC']);
         $ownerTravel = $step->getTravel();
-        $currentUser = $this->getUserTest('admin@admin.com');
+        $currentUser = $this->getUserByEmail('admin@admin.com');
         $client->loginUser($currentUser);
         $client->request(
             'POST', 
@@ -298,7 +298,7 @@ class StepControllerTest extends WebTestCase
         $client = static::createClient();
         $step = static::getContainer()->get(StepRepository::class)->findOneBy([], ['id' => 'ASC']);
         $ownerTravel = $step->getTravel()->getUser();
-        $currentUser = $this->getUserTest('admin@admin.com');
+        $currentUser = $this->getUserByEmail('admin@admin.com');
 
         $client->loginUser($currentUser);
         $client->request('DELETE', '/api/travel/step/'.$step->getId().'/delete/');

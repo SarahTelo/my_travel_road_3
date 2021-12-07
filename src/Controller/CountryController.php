@@ -8,9 +8,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use App\Service\ProcessFormService;
 
 //todo: utiliser une api pour récupérer le nom des pays et leurs coordonnées (capitale)
@@ -20,17 +17,10 @@ use App\Service\ProcessFormService;
 */
 class CountryController extends AbstractController
 {
-    private $validator;
-    private $objectNormalizer;
     private $processForm;
 
-    public function __construct( 
-        ValidatorInterface $validator, 
-        ObjectNormalizer $objectNormalizer, 
-        ProcessFormService $processForm)
+    public function __construct(ProcessFormService $processForm)
     {
-        $this->objectNormalizer = $objectNormalizer;
-        $this->validator = $validator;
         $this->processForm = $processForm;
     }
 
@@ -74,23 +64,27 @@ class CountryController extends AbstractController
      * *Ajout d'un pays
      * 
      * @Route("/admin/country/new/", name="_new", methods={"POST"})
-     * @param ValidatorInterface $validator
-     * @param ObjectNormalizer $objectNormalizer
+     * @param ProcessFormService $processForm
      * @param Request $request
      * @return Response
      */
     public function new(Request $request): Response
     {
+        //préparation des données
         $requestCountryNew = $request->request->All();
-        //création de l'objet et vérification de ses contraintes
+        //formulaire
+        $form = $this->createForm(CountryType::class, null, ['validation_groups' => 'constraints_new']);
+        $form->submit($requestCountryNew, false);
+        //vérification des contraintes
         $errors = [];
-        $country = $this->objectNormalizer->denormalize($requestCountryNew, Country::class);
-        $brutErrors = $this->validator->validate($country, null, 'constraints_new');
-        foreach ($brutErrors as $value) { $errors[$value->getPropertyPath()] = $value->getMessage(); }
-        if (count($errors) > 0 ) {
-            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+        if (!$form->isValid()) {
+            $errors = $this->processForm->validationForm($form);
+            if (!empty($errors)) {
+                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+            }
         }
-
+        //création du pays
+        $country = $form->getData();
         //sauvegarde
         try {
             $em = $this->getDoctrine()->getManager();
@@ -107,24 +101,27 @@ class CountryController extends AbstractController
      * *Modification d'un pays
      * 
      * @Route("/admin/country/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
-     * @param Country $country
      * @param ProcessFormService $processForm
+     * @param Country $country
      * @param Request $request
      * @return Response
      */
     public function edit(Request $request, Country $country): Response
     {
-        $requestCountryEdit = $request->request->All();
         $oldCountryName = $country->getName();
-        //création d'un formulaire avec les anciennes données et vérification des contraintes
-        $form = $this->createForm(CountryType::class, $country);
-        $entity = $this->processForm->validationFormEdit($form, $requestCountryEdit);
-        if(empty($entity['errors'])) {
-            $country = $form->getData();
-        } else {
-            return $this->json(['code' => 400, 'message' => $entity['errors']], Response::HTTP_BAD_REQUEST);
+        //préparation des données
+        $requestCountryEdit = $request->request->All();
+        //formulaire
+        $form = $this->createForm(CountryType::class, $country, ['validation_groups' => 'constraints_edit']);
+        $form->submit($requestCountryEdit, false);
+        //vérification des contraintes
+        $errors = [];
+        if (!$form->isValid()) {
+            $errors = $this->processForm->validationForm($form);
+            if (!empty($errors)) {
+                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+            }
         }
-
         //sauvegarde
         try {
             $this->getDoctrine()->getManager()->flush();

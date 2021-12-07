@@ -12,7 +12,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Service\FileUploader;
 use App\Service\ProcessFormService;
-use DateTime;
 use Symfony\Component\Serializer\SerializerInterface;
 
 /**
@@ -22,16 +21,13 @@ class StepController extends AbstractController
 {
     private $fileUploader;
     private $processForm;
-    private $serializer;
 
     public function __construct(
         FileUploader $fileUploader,
-        ProcessFormService $processForm,
-        SerializerInterface $serializer)
+        ProcessFormService $processForm)
     {
         $this->fileUploader = $fileUploader;
         $this->processForm = $processForm;
-        $this->serializer = $serializer;
     }
 
     /**
@@ -126,7 +122,6 @@ class StepController extends AbstractController
      * @Route("/travel/{id}/step/new/", name="_new", methods={"POST"}, requirements={"id"="\d+"})
      * @param FileUploader $fileUploader
      * @param ProcessFormService $processForm
-     * @param SerializerInterface $serializer
      * @param Request $request
      * @return Response
      */
@@ -144,19 +139,24 @@ class StepController extends AbstractController
         }
 
         //préparation des données
-        $requestStepNew = $request->request->All();
-        //évite d'ajouter dans la db un string qui ne correspond à aucune image
-        unset($requestStepNew['cover']);
+        $requestStepNew = $this->processForm->prepareDataStep($request->request->All());
+        $arrayFileCover['cover'] = $request->files->get('cover');
 
-        //création de l'objet et vérification des erreurs (méthode qui évite les erreurs liées au format des dates)
-        $step = $this->serializer->deserialize(json_encode($requestStepNew), Step::class, 'json');
-        $fileCover = $request->files->get('cover');
-        $errors = $this->processForm->validationFormNew($step, $fileCover);
-        if (count($errors) > 0 ) {
-            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+        //formulaire
+        $form = $this->createForm(StepType::class, null, ['validation_groups' => 'constraints_new']);
+        $form->submit($requestStepNew, false);
+
+        //vérification des contraintes
+        $errors = [];
+        if (!$form->isValid()) {
+            $errors = $this->processForm->validationForm($form, $arrayFileCover);
+            if (!empty($errors)) {
+                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+            }
         }
 
-        //ajout des éléments particuliers
+        //création de l'étape
+        $step = $form->getData();
         $previousStep = $this->getDoctrine()->getRepository(Step::class)->findOneBy(['travel' => $travelId], ['sequence' => 'DESC']);
         $step->setSequence($previousStep->getSequence() + 1);
         $step->setTravel($travel);
@@ -195,23 +195,21 @@ class StepController extends AbstractController
         }
 
         //préparation des données
-        $requestStepEdit = $request->request->All();
         $oldStepTitle = $step->getTitle();
-        //évite d'ajouter dans la db un string qui ne correspond à aucune image
-        if (isset($requestStepEdit['cover'])) { unset($requestStepEdit['cover']); }
-        
-        //création d'un formulaire avec les anciennes données et vérification des contraintes
-        $form = $this->createForm(StepType::class, $step);
-        $fileCover = $request->files->get('cover');
-        $entity = $this->processForm->validationFormEdit($form, $requestStepEdit, $fileCover);
-        if(empty($entity['errors'])) {
-            $step = $form->getData();
-        } else {
-            return $this->json(['code' => 400, 'message' => $entity['errors']], Response::HTTP_BAD_REQUEST);
-        }
+        $requestStepEdit = $this->processForm->prepareDataStep($request->request->All());
+        $arrayFileCover['cover'] = $request->files->get('cover');
 
-        //gestion de la date
-        if (isset($requestStepEdit['start_at'])) { $step->setStartAt(new DateTime($requestStepEdit['start_at'])); }
+        //formulaire
+        $form = $this->createForm(StepType::class, $step, ['validation_groups' => 'constraints_edit']);
+        $form->submit($requestStepEdit, false);
+        //vérification des contraintes
+        $errors = [];
+        if (!$form->isValid()) {
+            $errors = $this->processForm->validationForm($form, $arrayFileCover);
+            if (!empty($errors)) {
+                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+            }
+        }
 
         //gestion des images
         if (isset($fileCover)) {

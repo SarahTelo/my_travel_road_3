@@ -5,18 +5,14 @@ namespace App\Controller;
 use App\Entity\Travel;
 use App\Form\TravelType;
 use App\Repository\TravelRepository;
-use App\Entity\Category;
-use App\Repository\CategoryRepository;
 use App\Entity\Step;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Service\FileUploader;
 use App\Service\ProcessFormService;
-use DateTime;
 
 /**
 * @Route("/api", name="travels")
@@ -26,18 +22,15 @@ class TravelController extends AbstractController
     private $fileUploader;
     private $processForm;
     private $passwordHasher;
-    private $serializer;
 
     public function __construct(
         FileUploader $fileUploader,
         ProcessFormService $processForm,
-        UserPasswordHasherInterface $passwordHasher,
-        SerializerInterface $serializer)
+        UserPasswordHasherInterface $passwordHasher)
     {
         $this->fileUploader = $fileUploader;
         $this->processForm = $processForm;
         $this->passwordHasher = $passwordHasher;
-        $this->serializer = $serializer;
     }
 
     /**
@@ -122,52 +115,41 @@ class TravelController extends AbstractController
      * @Route("/travels/new/", name="_new", methods={"POST"})
      * @param FileUploader $fileUploader
      * @param ProcessFormService $processForm
-     * @param SerializerInterface $serializer
      * @param Request $request
      * @return Response
      */
     public function new(Request $request): Response
     {
         //préparation des données
-        $requestTravelNew = $request->request->All();
-        $requestTravelNew['status'] = intval($requestTravelNew['status']);
-        $requestTravelNew['visibility'] = boolval($requestTravelNew['visibility']);
-        if (isset($requestTravelNew['categories'])) {
-            $categories = $requestTravelNew['categories'];
-            unset($requestTravelNew['categories']);
-        }
-        //évite d'ajouter dans la db un string qui ne correspond à aucune image
-        unset($requestTravelNew['cover']);
-        
-        //création de l'objet et vérification des erreurs (méthode qui évite les erreurs liées au format des dates)
-        $travel = $this->serializer->deserialize(json_encode($requestTravelNew), Travel::class, 'json');
-        $fileCover = $request->files->get('cover');
-        $errors = $this->processForm->validationFormNew($travel, $fileCover);
-        if (count($errors) > 0 ) {
-            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
-        }
+        $requestTravelNew = $this->processForm->prepareDataTravel($request->request->All(), 'new');
+        $arrayFileCover['cover'] = $request->files->get('cover');
 
-        //ajout des éléments particuliers
-        $travel->setUser($this->getUser());
-        if (isset($fileCover)) { $travel->setCover($this->fileUploader->upload($fileCover)); }
+        //formulaire
+        $form = $this->createForm(TravelType::class, null, ['validation_groups' => 'constraints_new']);
+        $form->submit($requestTravelNew, false);
 
-        //gestion des catégories
-        if (isset($categories) && count($categories) !== 0) {
-            /** @var CategoryRepository $repository*/
-            foreach ($categories as $value) {
-                if ($value > 0) {
-                    $category = $this->getDoctrine()->getRepository(Category::class)->find(intval($value));
-                    $travel->addCategory($category);
-                }
+        //vérification des contraintes
+        $errors = [];
+        if (!$form->isValid()) {
+            $errors = $this->processForm->validationForm($form, $arrayFileCover);
+            if (!empty($errors)) {
+                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
             }
         }
 
-        //création de l'étape de départ
+        //création du voyage et de son étape de départ
+        $travel = $form->getData();
+        $travel->setUser($this->getUser());
+        //gestion de l'image
+        if (isset($arrayFileCover['cover'])) {
+            $newFilenameCover = $this->fileUploader->upload($arrayFileCover['cover']);
+            $travel->setCover($newFilenameCover);
+        }
+        //gestion de l'étape
         $step = (new Step())
             ->setTitle('Départ')
             ->setTravel($travel)
-            ->setSequence(1)
-        ;
+            ->setSequence(1);
         if ($travel->getStartAt() !== null) { $step->setStartAt($travel->getStartAt()); }
 
         //sauvegarde
@@ -187,7 +169,6 @@ class TravelController extends AbstractController
      * *Modification d'un voyage
      * 
      * @Route("/travels/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
-     * @param ObjectNormalizer $objectNormalizer
      * @param FileUploader $fileUploader
      * @param ProcessFormService $processForm
      * @param Request $request
@@ -197,48 +178,40 @@ class TravelController extends AbstractController
     public function edit(Request $request, Travel $travel): Response
     {
         $userStatus = $this->userStatus($travel);
-        if(!$userStatus['hasAdminAccess']) { 
-            if(!$userStatus['isTravelOwner']) { 
+        if(!$userStatus['hasAdminAccess']) {
+            if(!$userStatus['isTravelOwner']) {
                 $message = 'L\'utilisateur connecté n\'est pas le propriétaire du voyage à modifier';
                 return $this->json(['code' => 401, 'message' => $message], Response::HTTP_UNAUTHORIZED);
             }
         }
 
         //préparation des données
-        $requestTravelEdit = $request->request->All();
+        $requestTravelEdit = $this->processForm->prepareDataTravel($request->request->All(), 'edit');
         $oldTravelTitle = $travel->getTitle();
-        if(isset($requestTravelEdit['status'])) { $requestTravelEdit['status'] = intval($requestTravelEdit['status']); }
-        if(isset($requestTravelEdit['visibility'])) { $requestTravelEdit['visibility'] = boolval($requestTravelEdit['visibility']); }
-        if (isset($requestTravelEdit['categories'])) {
-            $categories = $requestTravelEdit['categories'];
-            unset($requestTravelEdit['categories']);
-        }
-        //évite d'ajouter dans la db un string qui ne correspond à aucune image
-        unset($requestTravelEdit['cover']);
-        
-        //création d'un formulaire avec les anciennes données et vérification des contraintes
-        $form = $this->createForm(TravelType::class, $travel);
-        $fileCover = $request->files->get('cover');
-        $entity = $this->processForm->validationFormEdit($form, $requestTravelEdit, $fileCover);
-        if(empty($entity['errors'])) {
-            $travel = $form->getData();
-        } else {
-            return $this->json(['code' => 400, 'message' => $entity['errors']], Response::HTTP_BAD_REQUEST);
+        $arrayFileCover['cover'] = $request->files->get('cover');
+
+        //formulaire
+        $form = $this->createForm(TravelType::class, $travel, ['validation_groups' => 'constraints_edit']);
+        $form->submit($requestTravelEdit, false);
+        //vérification des contraintes
+        $errors = [];
+        if (!$form->isValid()) {
+            $errors = $this->processForm->validationForm($form, $arrayFileCover);
+            if (!empty($errors)) {
+                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
+            }
         }
 
-        //gestion des dates
-        if (isset($requestTravelEdit['start_at'])) { $travel->setStartAt(new DateTime($requestTravelEdit['start_at'])); }
-        if (isset($requestTravelEdit['end_at'])) { $travel->setEndAt(new DateTime($requestTravelEdit['end_at'])); }
+        //mise à jour de la date de départ de l'étape 1 si l'utilisateur ne l'a pas effacé
         /** @var StepRepository */
-        //* à décommenter quand tous les voyages auront une étape 1
-        //!$firstStep = $this->getDoctrine()->getRepository(Step::class)->findBy(['sequence' => 1]);
-        //!$firstStep->setStartAt($travel->getStartAt());
+        $firstStep = $this->getDoctrine()->getRepository(Step::class)->findOneBy(['travel' => $travel->getId(),'sequence' => 1]);
+        if ($firstStep) { $firstStep->setStartAt($travel->getStartAt()); }
 
         //gestion des images
-        if (isset($fileCover)) {
+        if (isset($arrayFileCover['cover'])) {
             //suppression de l'ancien fichier physique s'il existe
             if ($travel->getCover() != null) { $this->fileUploader->deleteFile($travel->getCover()); }
-            $newFilenameCover = $this->fileUploader->upload($fileCover);
+            $newFilenameCover = $this->fileUploader->upload($arrayFileCover['cover']);
             $travel->setCover($newFilenameCover);
         }
         //priorité au retrait de l'image si l'utilisateur ajoute une image ET coche "supprimer l'image"
@@ -248,17 +221,6 @@ class TravelController extends AbstractController
             if($deleteCover === 1) {
                 $this->fileUploader->deleteFile($travel->getCover());
                 $travel->setCover(null);
-            }
-        }
-
-        //gestion des catégories
-        if (isset($categories) && count($categories) !== 0) {
-            /** @var CategoryRepository $repository*/
-            foreach ($categories as $value) {
-                if ($value > 0) {
-                    $category = $this->getDoctrine()->getRepository(Category::class)->find(intval($value));
-                    $travel->addCategory($category);
-                }
             }
         }
 

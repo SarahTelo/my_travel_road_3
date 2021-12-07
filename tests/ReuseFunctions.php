@@ -7,7 +7,7 @@ use App\Repository\TravelRepository;
 
 trait ReuseFunctions
 {
-    private function getUserTest(string $email)
+    private function getUserByEmail(string $email)
     {
         $user = static::getContainer()->get(UserRepository::class)->findOneByEmail($email);
         return $user;
