@@ -12,7 +12,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Service\FileUploader;
 use App\Service\ProcessFormService;
-use Symfony\Component\Serializer\SerializerInterface;
 
 /**
 * @Route("/api", name="steps")
@@ -147,12 +146,9 @@ class StepController extends AbstractController
         $form->submit($requestStepNew, false);
 
         //vérification des contraintes
-        $errors = [];
-        if (!$form->isValid()) {
-            $errors = $this->processForm->validationForm($form, $arrayFileCover);
-            if (!empty($errors)) {
-                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
-            }
+        $errors = $this->processForm->validationForm($form, $arrayFileCover);
+        if (!$form->isValid() || $errors != null) {
+            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
         //création de l'étape
@@ -160,7 +156,7 @@ class StepController extends AbstractController
         $previousStep = $this->getDoctrine()->getRepository(Step::class)->findOneBy(['travel' => $travelId], ['sequence' => 'DESC']);
         $step->setSequence($previousStep->getSequence() + 1);
         $step->setTravel($travel);
-        if (isset($fileCover)) { $step->setCover($this->fileUploader->upload($fileCover)); }
+        if (isset($arrayFileCover['cover'])) { $step->setCover($this->fileUploader->upload($arrayFileCover['cover'])); }
 
         //sauvegarde
         try {
@@ -203,19 +199,16 @@ class StepController extends AbstractController
         $form = $this->createForm(StepType::class, $step, ['validation_groups' => 'constraints_edit']);
         $form->submit($requestStepEdit, false);
         //vérification des contraintes
-        $errors = [];
-        if (!$form->isValid()) {
-            $errors = $this->processForm->validationForm($form, $arrayFileCover);
-            if (!empty($errors)) {
-                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
-            }
+        $errors = $this->processForm->validationForm($form, $arrayFileCover);
+        if (!$form->isValid() || $errors != null) {
+            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
         //gestion des images
-        if (isset($fileCover)) {
+        if (isset($arrayFileCover['cover'])) {
             //suppression de l'ancien fichier physique s'il existe
             if ($step->getCover() != null) { $this->fileUploader->deleteFile($step->getCover()); }
-            $newFilenameCover = $this->fileUploader->upload($fileCover);
+            $newFilenameCover = $this->fileUploader->upload($arrayFileCover['cover']);
             $step->setCover($newFilenameCover);
         }
         //priorité au retrait de l'image si l'utilisateur ajoute une image ET coche "supprimer l'image"
@@ -234,7 +227,7 @@ class StepController extends AbstractController
             $em->persist($step);
             $em->flush();
         } catch (\Throwable $th) {
-            $message = "L'étape '{$oldStepTitle}' n'a pas pu être ajoutée. Veuillez contacter l'administrateur.";
+            $message = "L'étape '{$oldStepTitle}' n'a pas pu être modifiée. Veuillez contacter l'administrateur.";
             return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
         return $this->json(['code' => 200, 'message' => ['step_id' => $step->getId()]], Response::HTTP_OK);
@@ -270,7 +263,7 @@ class StepController extends AbstractController
             $em->remove($step);
             $em->flush();
         } catch (\Throwable $th) {
-            $message = "L'étape <{$step->getTitle()}> n'a pas pu être supprimé. Veuillez contacter l'administrateur.";
+            $message = "L'étape <{$step->getTitle()}> n'a pas pu être supprimée. Veuillez contacter l'administrateur.";
             return $this->json(['code' => 503, 'message' => $message], Response::HTTP_SERVICE_UNAVAILABLE);
         }
 

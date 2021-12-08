@@ -24,6 +24,7 @@ class ProcessFormService
      */
     public function validationForm(Object $form, Array $fileArray = null): Array
     {
+        $errors = [];
         foreach ($form->getErrors(true) as $value) {
             $property = $value->getOrigin()->getName();
             $errors[$property][] = $value->getMessage();
@@ -34,7 +35,6 @@ class ProcessFormService
                 foreach ($brutErrors as $value) { $errors[$property][] = $value->getMessage(); }
             }
         }
-
         return $errors;
     }
 
@@ -91,6 +91,20 @@ class ProcessFormService
         if (isset($requestStep['cover'])) { unset($requestStep['cover']); }
         if (isset($requestStep['start_at'])) { $requestStep['start_at'] = new DateTime($requestStep['start_at']); }
         return $requestStep;
+    }
+
+    /**
+     * Préparation des donnés d'une image
+     *
+     * @param array $requestImage
+     * @return array
+     */
+    public function prepareDataImage(Array $requestImage): array
+    {
+        //évite d'ajouter dans la db un string qui ne correspond à aucune image
+        if (isset($requestImage['path'])) { unset($requestImage['path']); }
+        if (isset($requestImage['taken_at'])) { $requestImage['taken_at'] = new DateTime($requestImage['taken_at']); }
+        return $requestImage;
     }
 
     /**

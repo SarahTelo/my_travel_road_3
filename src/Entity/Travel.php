@@ -27,7 +27,8 @@ class Travel
      *      "home_detail",
      *      "category_travel_detail_admin", "category_travel_detail",
      *      "step_list_admin", "step_list_private", "step_list_public",
-     *      "step_detail_admin", "step_detail_private", "step_detail_public", 
+     *      "step_detail_admin", "step_detail_private", "step_detail_public",
+     *      "image_list", "image_list_admin",
      * })
      */
     private $id;
@@ -50,14 +51,15 @@ class Travel
      *      message = "Le titre doit contenir au minimum un caractère alphabétique."
      * )
      * @Groups({
-     *      "travel_list_public", 
-     *      "travel_list_admin", 
+     *      "travel_list_public",
+     *      "travel_list_admin",
      *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
      *      "travel_list_private",
      *      "home_detail",
      *      "category_travel_detail_admin", "category_travel_detail",
      *      "step_list_admin", "step_list_private", "step_list_public",
-     *      "step_detail_admin", "step_detail_private", "step_detail_public", 
+     *      "step_detail_admin", "step_detail_private", "step_detail_public",
+     *      "image_list", "image_list_admin",
      * })
      */
     private $title;
@@ -71,7 +73,7 @@ class Travel
      *      "home_detail",
      *      "category_travel_detail",
      *      "step_list_private", "step_list_public",
-     *      "step_detail_admin", "step_detail_private", "step_detail_public", 
+     *      "image_list", "step_detail_admin", "step_detail_private", "step_detail_public", 
      * })
      */
     private $cover;
@@ -181,6 +183,7 @@ class Travel
      *      "travel_detail_admin", "travel_detail_public",
      *      "home_detail",
      *      "category_travel_detail_admin", "category_travel_detail",
+     *      "image_list", 
      * })
      */
     private $user;
