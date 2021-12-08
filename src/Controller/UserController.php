@@ -120,12 +120,9 @@ class UserController extends AbstractController
         $form->submit($requestUserNew, false);
 
         //vérification des contraintes
-        $errors = [];
-        if (!$form->isValid()) {
-            $errors = $this->processForm->validationForm($form, $arrayFiles);
-            if (!empty($errors)) {
-                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
-            }
+        $errors = $this->processForm->validationForm($form, $arrayFiles);
+        if (!$form->isValid() || $errors != null) {
+            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
         //création de l'utilisateur
@@ -188,11 +185,10 @@ class UserController extends AbstractController
         $form->submit($requestUserEdit, false);
 
         //vérification des contraintes
-        $errors = [];
-        if (!$form->isValid()) { $errors = $this->processForm->validationForm($form, $arrayFiles); }
+        $errors = $this->processForm->validationForm($form, $arrayFiles);
         $checkPassword = $this->passwordHasher->isPasswordValid($this->getUser(), $requestUserEdit['checkPassword']);
         if (!$checkPassword) { $errors['password'][] = 'Mot de passe incorrect.'; }
-        if (!empty($errors)) {
+        if (!$form->isValid() || $errors != null) {
             return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
@@ -319,14 +315,14 @@ class UserController extends AbstractController
         $fileList[] = $user->getAvatar();
         foreach ($user->getTravels() as $travel) {
             $fileList[] = $travel->getCover();
-            foreach ($travel->getSteps() as $step) { $fileList[] = $step->getCover(); }
+            //foreach ($travel->getSteps() as $step) { $fileList[] = $step->getCover(); }
             //* remplace la ligne au dessus
-            //!foreach ($travel->getSteps() as $step) { 
-            //!    $fileList[] = $step->getCover(); 
-            //!    foreach ($step->getImages() as $image) {
-            //!        $fileList[] = $image->getPath(); 
-            //!    }
-            //!}
+            foreach ($travel->getSteps() as $step) { 
+                $fileList[] = $step->getCover(); 
+                foreach ($step->getImages() as $image) {
+                    $fileList[] = $image->getPath(); 
+                }
+            }
         }
 
         //sauvegarde
@@ -343,8 +339,7 @@ class UserController extends AbstractController
         foreach ($fileList as $file) { 
             if($file != null) { 
                 try{ $this->fileUploader->deleteFile($file); }
-                catch(\Throwable $th) { 
-                    //$fileListToRemoveManually['user'] = $userId; 
+                catch(\Throwable $th) {
                     $fileListToRemoveManually['files'] = $file; 
                 }
             }

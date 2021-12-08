@@ -36,6 +36,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      "home_detail",
      *      "category_travel_detail_admin", "category_travel_detail",
      *      "country_user_detail_admin", "country_user_detail",
+     *      "image_list", 
      * })
      */
     private $id;
@@ -188,6 +189,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      "home_detail",
      *      "category_travel_detail",
      *      "country_user_detail_admin", "country_user_detail",
+     *      "image_list", 
      * })
      */
     private $pseudo;
@@ -221,6 +223,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      *      "home_detail",
      *      "category_travel_detail",
      *      "country_user_detail",
+     *      "image_list", 
      * })
      */
     private $avatar;

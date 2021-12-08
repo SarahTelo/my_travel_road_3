@@ -129,12 +129,9 @@ class TravelController extends AbstractController
         $form->submit($requestTravelNew, false);
 
         //vérification des contraintes
-        $errors = [];
-        if (!$form->isValid()) {
-            $errors = $this->processForm->validationForm($form, $arrayFileCover);
-            if (!empty($errors)) {
-                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
-            }
+        $errors = $this->processForm->validationForm($form, $arrayFileCover);
+        if (!$form->isValid() || $errors != null) {
+            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
         //création du voyage et de son étape de départ
@@ -194,12 +191,9 @@ class TravelController extends AbstractController
         $form = $this->createForm(TravelType::class, $travel, ['validation_groups' => 'constraints_edit']);
         $form->submit($requestTravelEdit, false);
         //vérification des contraintes
-        $errors = [];
-        if (!$form->isValid()) {
-            $errors = $this->processForm->validationForm($form, $arrayFileCover);
-            if (!empty($errors)) {
-                return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
-            }
+        $errors = $this->processForm->validationForm($form, $arrayFileCover);
+        if (!$form->isValid() || $errors != null) {
+            return $this->json(['code' => 400, 'message' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
         //mise à jour de la date de départ de l'étape 1 si l'utilisateur ne l'a pas effacé

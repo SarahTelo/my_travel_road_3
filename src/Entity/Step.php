@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\StepRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -21,6 +23,7 @@ class Step
      *      "step_list_admin", "step_list_private", "step_list_public",
      *      "step_detail_admin", "step_detail_private", "step_detail_public", 
      *      "travel_detail_admin", "travel_detail_private", "travel_detail_public",
+     *      "image_list", "image_list_admin",
      * })
      */
     private $id;
@@ -46,6 +49,7 @@ class Step
      *      "step_list_admin", "step_list_private", "step_list_public",
      *      "step_detail_admin", "step_detail_private", "step_detail_public", 
      *      "travel_detail_private", "travel_detail_public",
+     *      "image_list", 
      * })
      */
     private $title;
@@ -73,7 +77,8 @@ class Step
      * @ORM\Column(type="string", length=255, nullable=true)
      * @Groups({
      *      "step_list_admin", "step_list_private", "step_list_public",
-     *      "step_detail_admin", "step_detail_private", "step_detail_public", 
+     *      "step_detail_admin", "step_detail_private", "step_detail_public",
+     *      "image_list", 
      * })
      */
     private $cover;
@@ -144,12 +149,24 @@ class Step
     /**
      * @ORM\ManyToOne(targetEntity=Travel::class, inversedBy="steps")
      * @ORM\JoinColumn(nullable=false, onDelete="CASCADE")
+     * @Groups({
+     *      "image_list", "image_list_admin",
+     * })
      */
     private $travel;
+
+    /**
+     * @ORM\OneToMany(targetEntity=Image::class, mappedBy="step")
+     * @Groups({
+     *      "step_detail_private", "step_detail_public",
+     * })
+     */
+    private $images;
 
     public function __construct()
     {
         $this->created_at = new \DateTimeImmutable('NOW');
+        $this->images = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -261,6 +278,36 @@ class Step
     public function setTravel(?Travel $travel): self
     {
         $this->travel = $travel;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Image[]
+     */
+    public function getImages(): Collection
+    {
+        return $this->images;
+    }
+
+    public function addImage(Image $image): self
+    {
+        if (!$this->images->contains($image)) {
+            $this->images[] = $image;
+            $image->setStep($this);
+        }
+
+        return $this;
+    }
+
+    public function removeImage(Image $image): self
+    {
+        if ($this->images->removeElement($image)) {
+            // set the owning side to null (unless already changed)
+            if ($image->getStep() === $this) {
+                $image->setStep(null);
+            }
+        }
 
         return $this;
     }
