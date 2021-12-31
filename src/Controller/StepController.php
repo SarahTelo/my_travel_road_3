@@ -214,8 +214,8 @@ class StepController extends AbstractController
         //priorité au retrait de l'image si l'utilisateur ajoute une image ET coche "supprimer l'image"
         if (isset($requestStepEdit['deleteCover'])) {
             //obligatoire de séparer
-            $deleteCover = intval($requestStepEdit['deleteCover']);
-            if($deleteCover === 1) {
+            $deleteCover = boolval($requestStepEdit['deleteCover']);
+            if($deleteCover) {
                 $this->fileUploader->deleteFile($step->getCover());
                 $step->setCover(null);
             }

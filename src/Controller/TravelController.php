@@ -36,7 +36,7 @@ class TravelController extends AbstractController
     /**
      * *Liste de tous les voyages de l'utilisateur actuel (+ categories)
      * 
-     * @Route("/travels/my-travels-list/", name="_list_private", methods={"GET"})
+     * @Route("/my-travels-list/", name="_list_private", methods={"GET"})
      * @return Response
      */
     public function privateList(): Response
@@ -77,7 +77,7 @@ class TravelController extends AbstractController
     /**
      * *Détail du voyage
      * 
-     * @Route("/travels/{id}/detail/", name="_detail", methods={"GET"}, requirements={"id"="\d+"})
+     * @Route("/travel/{id}/detail/", name="_detail", methods={"GET"}, requirements={"id"="\d+"})
      * @param Travel $travel
      * @return Response
      */
@@ -100,7 +100,7 @@ class TravelController extends AbstractController
     /**
      * *Détail du voyage ADMIN
      * 
-     * @Route("/admin/travels/{id}/detail/", name="_detail_admin", methods={"GET"}, requirements={"id"="\d+"})
+     * @Route("/admin/travel/{id}/detail/", name="_detail_admin", methods={"GET"}, requirements={"id"="\d+"})
      * @param Travel $travel
      * @return Response
      */
@@ -112,7 +112,7 @@ class TravelController extends AbstractController
     /**
      * *Ajout d'un voyage
      * 
-     * @Route("/travels/new/", name="_new", methods={"POST"})
+     * @Route("/travel/new/", name="_new", methods={"POST"})
      * @param FileUploader $fileUploader
      * @param ProcessFormService $processForm
      * @param Request $request
@@ -165,7 +165,7 @@ class TravelController extends AbstractController
     /**
      * *Modification d'un voyage
      * 
-     * @Route("/travels/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
+     * @Route("/travel/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
      * @param FileUploader $fileUploader
      * @param ProcessFormService $processForm
      * @param Request $request
@@ -211,8 +211,8 @@ class TravelController extends AbstractController
         //priorité au retrait de l'image si l'utilisateur ajoute une image ET coche "supprimer l'image"
         if (isset($requestTravelEdit['deleteCover'])) {
             //obligatoire de séparer
-            $deleteCover = intval($requestTravelEdit['deleteCover']);
-            if($deleteCover === 1) {
+            $deleteCover = boolval($requestTravelEdit['deleteCover']);
+            if($deleteCover) {
                 $this->fileUploader->deleteFile($travel->getCover());
                 $travel->setCover(null);
             }
@@ -231,7 +231,7 @@ class TravelController extends AbstractController
     /**
     * *Suppression d'un voyage
     * 
-    * @Route("/travels/{id}/delete/", name="_delete", methods={"DELETE"}, requirements={"id"="\d+"})
+    * @Route("/travel/{id}/delete/", name="_delete", methods={"DELETE"}, requirements={"id"="\d+"})
     * @param Travel $travel
     * @param FileUploader $fileUploader
     * @param UserPasswordHasherInterface $passwordHasher

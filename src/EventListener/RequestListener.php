@@ -8,7 +8,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 class RequestListener
 {
     /**
-     * *Anti spam
+     * *Vérifications avant soumission d'un formulaire
      *
      * @param RequestEvent $event
      * @return void
@@ -20,14 +20,15 @@ class RequestListener
         }
 
         if($event->getRequest()->getMethod() == "POST") {
+            //anti-spam
             if($event->getRequest()->request->All()['_ne_rien_ajouter_'] != null) {
-                //todo : trouver une solution pour renvoyer un réponse json sans continuer vers le controller associé
+                //todo
                 throw new BadRequestHttpException('Qui êtes-vous?');
             }
-            
+            //content type
             $contentType = $event->getRequest()->headers->get('Content-Type');
             if(!str_contains($contentType, 'multipart/form-data')) {
-                //todo : trouver une solution pour renvoyer un réponse json sans continuer vers le controller associé
+                //todo
                 throw new BadRequestHttpException('Nécessite \'multipart/form-data\' dans le header');
             }
         }
