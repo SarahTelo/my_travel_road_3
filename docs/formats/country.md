@@ -94,11 +94,11 @@ Méthode: **POST**
 
 Content type: `multipart/form-data`
 
-| Name              | Type            | Mandatory |
-|-------------------|-----------------|-----------|
-| _ne_rien_ajouter_ | hidden          | true      |
-| name              | string          | true      |
-| coordinate        | string          | true      |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| name                | string          | true      |
+| coordinate          | string          | true      |
 
 EXEMPLE:
 
@@ -118,6 +118,7 @@ REPONSE:
   "message": {
     "country_id": 53
   }
+}
 ```
 
 ## edit
@@ -129,11 +130,11 @@ Paramètre: `id` => l'id du pays
 
 Content type: `multipart/form-data`
 
-| Name              | Type            | Mandatory |
-|-------------------|-----------------|-----------|
-| _ne_rien_ajouter_ | hidden          | true      |
-| name              | string          |           |
-| coordinate        | string          |           |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| name                | string          |           |
+| coordinate          | string          |           |
 
 EXEMPLE:
 

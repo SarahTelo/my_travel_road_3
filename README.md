@@ -14,7 +14,7 @@ Voir le cahier des charges : [specifications](./docs/specifications.md)
 
 ### Programmées
 
-- correction des tests unitaires avec des data providers
+- correction et ajout de tests unitaires avec des data providers
 - créer une liste chaînée pour lier les étapes entre elles
 - utiliser une API externe pour la liste des pays
 - créer le formulaire de contact afin de contacter les propriétaires du site
@@ -23,5 +23,5 @@ Voir le cahier des charges : [specifications](./docs/specifications.md)
 ### Non programmées
 
 - création de compte par validation d'un lien envoyé à l'email entré
-- créer le système de modération de contenu : validation préalable par un modérateur avant la publication du contenu
-- créer le lien vers le signalement de contenu inaproprié
+- créer le système de modération de contenu : validation préalable par un modérateur avant la publication de contenu
+- créer un lien de signalement de contenu inaproprié pour chaque élément créé par un utilisateur

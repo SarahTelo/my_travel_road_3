@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Serializer\Annotation\Groups;
 
-//todo: mettre match à true
+//todo: mettre match à true (regex password)
 
 /**
  * @ORM\Entity(repositoryClass=UserRepository::class)

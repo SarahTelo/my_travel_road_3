@@ -76,13 +76,13 @@ Paramètre: `id` => l'id de l'étape
 
 Content type: `multipart/form-data`
 
-| Name              | Type            | Mandatory |
-|-------------------|-----------------|-----------|
-| _ne_rien_ajouter_ | hidden          | true      |
-| path              | string (file)   | true      |
-| name              | string          |           |
-| description       | string          |           |
-| taken_at          | string|datetime |           |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| path                | string (file)   | true      |
+| name                | string          |           |
+| description         | string          |           |
+| taken_at            | string|datetime |           |
 
 EXEMPLE:
 
@@ -115,13 +115,13 @@ Paramètre: `id` => l'id de l'image
 
 Content type: `multipart/form-data`
 
-| Name              | Type            | Mandatory |
-|-------------------|-----------------|-----------|
-| _ne_rien_ajouter_ | hidden          | true      |
-| path              | string (file)   |           |
-| name              | string          |           |
-| description       | string          |           |
-| taken_at          | string|datetime |           |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| path                | string (file)   |           |
+| name                | string          |           |
+| description         | string          |           |
+| taken_at            | string|datetime |           |
 
 EXEMPLE:
 

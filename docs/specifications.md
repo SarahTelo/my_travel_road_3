@@ -98,7 +98,11 @@ Tous
 ### Rôles pour l'organisation du projet
 
 Product Owner : Jérôme (react)
+
 Scrum Master : Sarah (symfony)
+
 Lead dev front: Aurélie (react)
+
 Lead dev back : Jérémy (symfony)
+
 Git master : Jérémy (symfony) et Mélodie (react)

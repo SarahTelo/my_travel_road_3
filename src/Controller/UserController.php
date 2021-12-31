@@ -64,7 +64,7 @@ class UserController extends AbstractController
     /**
      * *Détail de l'utilisateur avec la liste de ses voyages visibles
      * 
-     * @Route("/users/{id}/detail/", name="_detail", methods={"GET"}, requirements={"id"="\d+"})
+     * @Route("/user/{id}/detail/", name="_detail", methods={"GET"}, requirements={"id"="\d+"})
      * @param User $user
      * @return Response
      */
@@ -84,7 +84,7 @@ class UserController extends AbstractController
     /**
      * *Page de profil de l'utilisateur actuel
      * 
-     * @Route("/users/profile/", name="_profile", methods={"GET"})
+     * @Route("/user/profile/", name="_profile", methods={"GET"})
      * @param User $user
      * @return Response
      */
@@ -97,7 +97,7 @@ class UserController extends AbstractController
     /**
      * *Ajout d'un utilisateur
      * 
-     * @Route("/users/new/", name="_new", methods={"POST"})
+     * @Route("/user/new/", name="_new", methods={"POST"})
      * @param UserPasswordHasherInterface $passwordHasher
      * @param FileUploader $fileUploader
      * @param Request $request
@@ -149,7 +149,7 @@ class UserController extends AbstractController
     /**
      * *Modification d'un utilisateur
      * 
-     * @Route("/users/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
+     * @Route("/user/{id}/edit/", name="_edit", methods={"POST"}, requirements={"id"="\d+"})
      * @param UserPasswordHasherInterface $passwordHasher
      * @param FileUploader $fileUploader
      * @param User $user
@@ -209,15 +209,15 @@ class UserController extends AbstractController
         //priorité au retrait de l'image si l'utilisateur ajoute une image ET coche "supprimer l'image"
         if (isset($requestUserEdit['deleteCover'])) {
             //obligatoire de séparer
-            $deleteCover = intval($requestUserEdit['deleteCover']);
-            if($deleteCover === 1) {
+            $deleteCover = boolval($requestUserEdit['deleteCover']);
+            if($deleteCover) {
                 $this->fileUploader->deleteFile($user->getCover());
                 $user->setCover(null);
             }
         }
         if (isset($requestUserEdit['deleteAvatar'])) {
-            $deleteAvatar = intval($requestUserEdit['deleteAvatar']);
-            if($deleteAvatar === 1) {
+            $deleteAvatar = boolval($requestUserEdit['deleteAvatar']);
+            if($deleteAvatar) {
                 $this->fileUploader->deleteFile($user->getAvatar());
                 $user->setAvatar(null);
             }
@@ -236,7 +236,7 @@ class UserController extends AbstractController
     /**
      * *Modification du mot de passe de l'utilisateur
      * 
-     * @Route("/users/{id}/edit/password/", name="_edit_password", methods={"POST"}, requirements={"id"="\d+"})
+     * @Route("/user/{id}/edit/password/", name="_edit_password", methods={"POST"}, requirements={"id"="\d+"})
      * @param ValidatorInterface $validator
      * @param UserPasswordHasherInterface $passwordHasher
      * @param User $user
@@ -280,7 +280,7 @@ class UserController extends AbstractController
     /**
      * *Suppression d'un utilisateur
      * 
-     * @Route("/users/{id}/delete/", name="_delete", methods={"DELETE"}, requirements={"id"="\d+"})
+     * @Route("/user/{id}/delete/", name="_delete", methods={"DELETE"}, requirements={"id"="\d+"})
      * @param UserPasswordHasherInterface $passwordHasher
      * @param FileUploader $fileUploader
      * @param User $user

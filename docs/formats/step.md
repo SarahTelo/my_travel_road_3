@@ -147,14 +147,14 @@ Paramètre: `id` => l'id du voyage
 
 Content type: `multipart/form-data`
 
-| Name              | Type            | Mandatory |
-|-------------------|-----------------|-----------|
-| _ne_rien_ajouter_ | hidden          | true      |
-| title             | string          | true      |
-| cover             | string (file)   |           |
-| description       | string          |           |
-| start_coordinate  | string          |           |
-| start_at          | string|datetime |           |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| title               | string          | true      |
+| cover               | string (file)   |           |
+| description         | string          |           |
+| start_coordinate    | string          |           |
+| start_at            | string|datetime |           |
 
 EXEMPLE:
 
@@ -189,15 +189,15 @@ Paramètre: `id` => l'id de l'étape
 
 Content type: `multipart/form-data`
 
-| Name              | Type            | Mandatory |
-|-------------------|-----------------|-----------|
-| _ne_rien_ajouter_ | hidden          | true      |
-| title             | string          |           |
-| cover             | string (file)   |           |
-| description       | string          |           |
-| start_coordinate  | string          |           |
-| start_at          | string|datetime |           |
-| deleteCover       | boolean         |           |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| title               | string          |           |
+| cover               | string (file)   |           |
+| description         | string          |           |
+| start_coordinate    | string          |           |
+| start_at            | string|datetime |           |
+| deleteCover         | boolean         |           |
 
 EXEMPLE:
 

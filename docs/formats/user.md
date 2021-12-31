@@ -77,7 +77,7 @@ REPONSE:
     "cover": "brunet-123456.png",
     "country": {
       "id": 1,
-      "name": "Gibraltar"
+      "name": "France"
     }
   },
   "travelsList": [
@@ -108,9 +108,9 @@ REPONSE:
   "avatar": "brunet-123456.png",
   "cover": "brunet-123456.png",
   "country": {
-      "id": 1,
-      "name": "Gibraltar"
-    }
+    "id": 1,
+    "name": "France"
+  }
 }
 ```
 
@@ -121,19 +121,19 @@ Méthode: **POST**
 
 Content type: `multipart/form-data`
 
-| Name                | Type           | Mandatory |
-|---------------------|----------------|-----------|
-| \_ne_rien_ajouter\_ | hidden         | true      |
-| email               | string         | true      |
-| password            | string         | true      |
-| roles               | string (array) |           |
-| firstname           | string         |           |
-| lastname            | string         |           |
-| pseudo              | string         |           |
-| presentation        | string         |           |
-| avatar              | string (file)  |           |
-| cover               | string (file)  |           |
-| country             | integer        |           |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| email               | string          | true      |
+| password            | string          | true      |
+| roles               | string (array)  |           |
+| firstname           | string          |           |
+| lastname            | string          |           |
+| pseudo              | string          |           |
+| presentation        | string          |           |
+| avatar              | string (file)   |           |
+| cover               | string (file)   |           |
+| country             | integer         |           |
 
 EXEMPLE:
 
@@ -171,21 +171,21 @@ Content type: `multipart/form-data`
 
 Paramètre: `id` = l'id de l'utilisateur
 
-| Name                | Type           | Mandatory |
-|---------------------|----------------|-----------|
-| \_ne_rien_ajouter\_ | hidden         | true      |
-| checkPassword       | string         | true      |
-| email               | string         |           |
-| roles               | string (array) |           |
-| firstname           | string         |           |
-| lastname            | string         |           |
-| pseudo              | string         |           |
-| presentation        | string         |           |
-| avatar              | string (file)  |           |
-| cover               | string (file)  |           |
-| country             | integer        |           |
-| deleteAvatar        | boolean        |           |
-| deleteCover         | boolean        |           |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| checkPassword       | string          | true      |
+| email               | string          |           |
+| roles               | string (array)  |           |
+| firstname           | string          |           |
+| lastname            | string          |           |
+| pseudo              | string          |           |
+| presentation        | string          |           |
+| avatar              | string (file)   |           |
+| cover               | string (file)   |           |
+| country             | integer         |           |
+| deleteAvatar        | boolean         |           |
+| deleteCover         | boolean         |           |
 
 EXEMPLE:
 
@@ -221,11 +221,11 @@ Content type: `multipart/form-data`
 
 Paramètre: `id` = l'id de l'utilisateur
 
-| Name                | Type           | Mandatory |
-|---------------------|----------------|-----------|
-| oldPassword         | string         | true      |
-| password            | string         | true      |
-| \_ne_rien_ajouter\_ | hidden         | true      |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| oldPassword         | string          | true      |
+| password            | string          | true      |
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
 
 EXEMPLE:
 
@@ -255,10 +255,10 @@ Content type: `application/json`
 
 Paramètre: `id` = l'id de l'utilisateur
 
-| Name                | Type    | Mandatory |
-|---------------------|---------|-----------|
-| \_ne_rien_ajouter\_ | hidden  | true      |
-| checkPassword       | string  | true      |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| checkPassword       | string          | true      |
 
 EXEMPLE:
 

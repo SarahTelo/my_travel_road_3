@@ -178,7 +178,7 @@ Content type: `multipart/form-data`
 
 | Name                | Type            | Mandatory |
 |---------------------|-----------------|-----------|
-| \_ne_rien_ajouter\_ | hidden          | true      |
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
 | title               | string          | true      |
 | cover               | string (file)   |           |
 | description         | string          |           |
@@ -225,7 +225,7 @@ Paramètre: `id` => l'id du voyage
 
 | Name                | Type            | Mandatory |
 |---------------------|-----------------|-----------|
-| \_ne_rien_ajouter\_ | hidden          | true      |
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
 | title               | string          |           |
 | cover               | string (file)   |           |
 | description         | string          |           |
@@ -270,10 +270,10 @@ Content type: `application/json`
 
 Paramètre: `id` => l'id du voyage
 
-| Name                | Type    | Mandatory |
-|---------------------|---------|-----------|
-| \_ne_rien_ajouter\_ | hidden  | true      |
-| checkPassword       | string  | true      |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| checkPassword       | string          | true      |
 
 EXEMPLE:
 

@@ -106,10 +106,10 @@ Méthode: **POST**
 
 Content type: `multipart/form-data`
 
-| Name              | Type            | Mandatory |
-|-------------------|-----------------|-----------|
-| _ne_rien_ajouter_ | hidden          | true      |
-| name              | string          | true      |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| name                | string          | true      |
 
 EXEMPLE:
 
@@ -128,6 +128,7 @@ REPONSE:
   "message": {
     "category_id": 53
   }
+}
 ```
 
 ## edit
@@ -139,10 +140,10 @@ Paramètre: `id` => l'id de la catégorie
 
 Content type: `multipart/form-data`
 
-| Name              | Type            | Mandatory |
-|-------------------|-----------------|-----------|
-| _ne_rien_ajouter_ | hidden          |           |
-| name              | string          | true      |
+| Name                | Type            | Mandatory |
+|---------------------|-----------------|-----------|
+| \_ne_rien_ajouter\_ | string (hidden) | true      |
+| name                | string          | true      |
 
 EXEMPLE:
 
